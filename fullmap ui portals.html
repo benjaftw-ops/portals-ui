@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Full Map</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+  <script src="https://portals-labs.github.io/portals-sdk/portals-sdk.js?v=10005456"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: transparent !important;
+      overflow: hidden;
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    :root {
+      --cyan: #00ffe7;
+      --magenta: #ff00aa;
+      --yellow: #ffe600;
+      --dark: #050a0e;
+    }
+
+    /* ── BACKDROP ── */
+    #backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 8, 12, 0.94);
+      backdrop-filter: blur(4px);
+      animation: fade-in 0.3s ease forwards;
+    }
+
+    /* Noise texture overlay */
+    #backdrop::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    /* Grid lines */
+    #backdrop::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,255,231,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,231,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    /* ── MAIN PANEL ── */
+    #map-panel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(90vw, 800px);
+      height: min(88vh, 640px);
+      background: rgba(5, 10, 14, 0.97);
+      border: 1px solid rgba(0,255,231,0.25);
+      display: flex;
+      flex-direction: column;
+      animation: panel-in 0.35s cubic-bezier(0.16,1,0.3,1) forwards;
+      overflow: hidden;
+    }
+
+    /* Corner accents */
+    .corner {
+      position: absolute;
+      width: 20px; height: 20px;
+      border-color: var(--cyan);
+      border-style: solid;
+      z-index: 10;
+    }
+    .corner.tl { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+    .corner.tr { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+    .corner.bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+    .corner.br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+    /* Decorative side lines */
+    .corner.tl::after, .corner.tr::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      height: 1px;
+      width: 40px;
+      background: linear-gradient(90deg, var(--cyan), transparent);
+    }
+    .corner.tl::after { left: 20px; }
+    .corner.tr::after { right: 20px; transform: scaleX(-1); }
+
+    /* ── HEADER ── */
+    #header {
+      padding: 12px 20px;
+      border-bottom: 1px solid rgba(0,255,231,0.15);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      background: rgba(0,255,231,0.03);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-dot {
+      width: 6px; height: 6px;
+      background: var(--cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 6px var(--cyan);
+      animation: blink 1.5s ease-in-out infinite;
+    }
+
+    #header h1 {
+      font-family: 'Orbitron', monospace;
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--cyan);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+    }
+
+    #header .subtitle {
+      font-size: 9px;
+      color: rgba(0,255,231,0.4);
+      letter-spacing: 3px;
+    }
+
+    #close-btn {
+      background: none;
+      border: 1px solid rgba(0,255,231,0.3);
+      color: var(--cyan);
+      font-family: 'Orbitron', monospace;
+      font-size: 10px;
+      padding: 6px 14px;
+      cursor: pointer;
+      letter-spacing: 2px;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    #close-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--cyan);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    #close-btn:hover {
+      color: var(--dark);
+      border-color: var(--cyan);
+    }
+
+    #close-btn:hover::before { opacity: 1; }
+    #close-btn span { position: relative; z-index: 1; }
+
+    /* ── BODY ── */
+    #body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── MAP AREA ── */
+    #map-area {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Ocean background */
+    #ocean {
+      position: absolute;
+      inset: 20px;
+      background:
+        radial-gradient(ellipse at 50% 50%, rgba(0,40,60,0.8) 0%, rgba(2,8,16,0.95) 70%);
+      border: 1px solid rgba(0,255,231,0.1);
+    }
+
+    /* Ocean grid */
+    #ocean::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,255,231,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,231,0.05) 1px, transparent 1px);
+      background-size: 30px 30px;
+    }
+
+    /* Scan sweep on ocean */
+    #ocean::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, rgba(0,255,231,0.3), transparent);
+      animation: ocean-scan 4s linear infinite;
+    }
+
+    /* ── ISLAND NODES ── */
+    .island-node {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      z-index: 5;
+    }
+
+    .island-node:hover .node-ring { opacity: 1; transform: scale(1.5); }
+    .island-node:hover .node-label { opacity: 1; transform: translateX(-50%) translateY(-2px); }
+    .island-node:hover .node-desc { opacity: 1; }
+
+    .node-core {
+      border-radius: 50%;
+      position: relative;
+      z-index: 2;
+      transition: transform 0.2s;
+    }
+
+    .island-node:hover .node-core { transform: scale(1.3); }
+
+    .node-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid currentColor;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 0.3;
+      transition: all 0.3s;
+      pointer-events: none;
+    }
+
+    .node-label {
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Orbitron', monospace;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      white-space: nowrap;
+      text-transform: uppercase;
+      opacity: 0.7;
+      transition: all 0.2s;
+      text-shadow: 0 0 8px currentColor;
+      pointer-events: none;
+    }
+
+    .island-node.active .node-label { opacity: 1; }
+
+    .node-desc {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 7px;
+      color: rgba(0,255,231,0.5);
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+
+    /* Player marker */
+    #player-marker {
+      position: absolute;
+      z-index: 8;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .player-core {
+      width: 10px; height: 10px;
+      background: var(--yellow);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--yellow), 0 0 16px rgba(255,230,0,0.5);
+      animation: player-float 2s ease-in-out infinite;
+    }
+
+    .player-ring {
+      position: absolute;
+      width: 20px; height: 20px;
+      border: 1px solid var(--yellow);
+      border-radius: 50%;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      animation: ring-expand 1.5s ease-out infinite;
+    }
+
+    /* ── SIDEBAR ── */
+    #sidebar {
+      width: 200px;
+      border-left: 1px solid rgba(0,255,231,0.12);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      background: rgba(0,255,231,0.02);
+    }
+
+    .sidebar-section {
+      padding: 14px;
+      border-bottom: 1px solid rgba(0,255,231,0.08);
+    }
+
+    .sidebar-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 8px;
+      color: rgba(0,255,231,0.4);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    /* Island list */
+    .island-list-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 6px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-bottom: 3px;
+    }
+
+    .island-list-item:hover, .island-list-item.active {
+      border-color: rgba(0,255,231,0.2);
+      background: rgba(0,255,231,0.04);
+    }
+
+    .list-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .list-name {
+      font-size: 9px;
+      color: rgba(0,255,231,0.6);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: color 0.15s;
+    }
+
+    .island-list-item:hover .list-name,
+    .island-list-item.active .list-name { color: var(--cyan); }
+
+    /* Info panel */
+    #island-info {
+      padding: 14px;
+      flex: 1;
+    }
+
+    #info-name {
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan);
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+      text-shadow: 0 0 10px var(--cyan);
+    }
+
+    #info-desc {
+      font-size: 9px;
+      color: rgba(0,255,231,0.5);
+      line-height: 1.6;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── FOOTER ── */
+    #footer {
+      padding: 8px 20px;
+      border-top: 1px solid rgba(0,255,231,0.1);
+      display: flex;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .footer-item {
+      font-size: 8px;
+      color: rgba(0,255,231,0.3);
+      letter-spacing: 2px;
+    }
+
+    .footer-item span { color: rgba(0,255,231,0.6); }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fade-in {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+
+    @keyframes panel-in {
+      from { opacity: 0; transform: translate(-50%, -48%) scale(0.97); }
+      to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
+    }
+
+    @keyframes ocean-scan {
+      0% { top: 0; } 100% { top: 100%; }
+    }
+
+    @keyframes player-float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-2px); }
+    }
+
+    @keyframes ring-expand {
+      0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+      100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+    }
+
+    @keyframes node-appear {
+      from { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+      to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+<div id="backdrop"></div>
+
+<div id="map-panel">
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+
+  <!-- Header -->
+  <div id="header">
+    <div class="header-left">
+      <div class="status-dot"></div>
+      <div>
+        <h1>WORLD MAP</h1>
+        <div class="subtitle">ISLAND ARCHIPELAGO · 12 SECTORS</div>
+      </div>
+    </div>
+    <button id="close-btn" onclick="closeMap()"><span>✕ CLOSE</span></button>
+  </div>
+
+  <!-- Body -->
+  <div id="body">
+
+    <!-- Map -->
+    <div id="map-area">
+      <div id="ocean">
+        <!-- Islands rendered by JS -->
+        <div id="player-marker" style="left:50%;top:50%">
+          <div class="player-ring"></div>
+          <div class="player-core"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">// SECTORS</div>
+        <div id="island-list"></div>
+      </div>
+      <div id="island-info">
+        <div id="info-name">SELECT ISLAND</div>
+        <div id="info-desc">Hover over an island on the map or select from the list to view details.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div id="footer">
+    <div class="footer-item">COORDS <span id="coords">50.0 · 50.0</span></div>
+    <div class="footer-item">ISLANDS <span>12 / 12</span></div>
+    <div class="footer-item">STATUS <span>ONLINE</span></div>
+  </div>
+</div>
+
+<script>
+  const sdk = typeof PortalsSdk !== 'undefined' ? PortalsSdk : null;
+
+  const islands = [
+    { id: 'midhold',     label: 'MIDHOLD',       x: 50, y: 50,  color: '#00ffe7', size: 14, desc: 'The central hub island. Largest landmass. Where your journey begins.' },
+    { id: 'ashveil',     label: 'ASHVEIL',        x: 15, y: 18,  color: '#ff4444', size: 9,  desc: 'Dark volcanic island. Black rock spires pierce the sky. Ash fills the air.' },
+    { id: 'greenhollow', label: 'GREENHOLLOW',    x: 50, y: 10,  color: '#00ff88', size: 10, desc: 'Dense ancient forest. Overgrown and untamed. Something watches from the trees.' },
+    { id: 'stonecrest',  label: 'STONECREST',     x: 82, y: 14,  color: '#aaaaaa', size: 9,  desc: 'Mountain island. A single tall peak dominates. Bare stone and dry grass.' },
+    { id: 'driftwood',   label: 'DRIFTWOOD BAY',  x: 90, y: 50,  color: '#ffcc44', size: 9,  desc: 'Sandy beach island. Flat terrain. Driftwood and wreckage line the shore.' },
+    { id: 'emberfall',   label: 'EMBERFALL',      x: 80, y: 80,  color: '#ff8800', size: 9,  desc: 'Eternal autumn. Orange and brown canopy. Fallen leaves never rot here.' },
+    { id: 'coldspire',   label: 'COLDSPIRE',      x: 50, y: 90,  color: '#88ccff', size: 9,  desc: 'Frozen tundra. An icy spire marks its center. Silence is absolute.' },
+    { id: 'murkfen',     label: 'MURKFEN',        x: 20, y: 82,  color: '#44aa44', size: 9,  desc: 'Dark swampland. Dead trees. Murky waters. Something moves beneath.' },
+    { id: 'ironhold',    label: 'IRONHOLD',       x: 10, y: 50,  color: '#888888', size: 10, desc: 'Ancient fortress ruins. Broken walls overgrown with vines. Long abandoned.' },
+    { id: 'tidewatch',   label: 'TIDEWATCH',      x: 50, y: 3,   color: '#00ccff', size: 7,  desc: 'High clifftop island. Sheer drops to the sea. Windswept and exposed.' },
+    { id: 'gilded',      label: 'GILDED SANDS',   x: 93, y: 28,  color: '#ffee00', size: 7,  desc: 'Desert island. Rolling dunes. Sandstone formations bake in endless heat.' },
+    { id: 'whisperwood', label: 'WHISPERWOOD',    x: 6,  y: 28,  color: '#cc44ff', size: 8,  desc: 'Mysterious forest. Glowing flora. Voices carry on the wind at night.' },
+  ];
+
+  const ocean = document.getElementById('ocean');
+  const list = document.getElementById('island-list');
+  let selectedId = null;
+
+  islands.forEach((island, i) => {
+    // Map node
+    const node = document.createElement('div');
+    node.className = 'island-node';
+    node.id = 'node-' + island.id;
+    node.style.cssText = `
+      left: ${island.x}%; top: ${island.y}%;
+      animation: node-appear 0.4s ${i * 0.04}s cubic-bezier(0.16,1,0.3,1) both;
+      color: ${island.color};
+    `;
+    node.innerHTML = `
+      <div class="node-ring" style="
+        width:${island.size * 2.5}px;
+        height:${island.size * 2.5}px;
+        color:${island.color};
+        border-color:${island.color};
+      "></div>
+      <div class="node-core" style="
+        width:${island.size}px;
+        height:${island.size}px;
+        background:${island.color};
+        box-shadow:0 0 ${island.size}px ${island.color};
+      "></div>
+      <div class="node-label" style="color:${island.color}">${island.label}</div>
+      <div class="node-desc">${island.desc.split('.')[0]}</div>
+    `;
+    node.addEventListener('click', () => selectIsland(island.id));
+    node.addEventListener('mouseenter', () => showInfo(island));
+    ocean.appendChild(node);
+
+    // Sidebar list
+    const item = document.createElement('div');
+    item.className = 'island-list-item';
+    item.id = 'list-' + island.id;
+    item.innerHTML = `
+      <div class="list-dot" style="background:${island.color};box-shadow:0 0 4px ${island.color}"></div>
+      <div class="list-name">${island.label}</div>
+    `;
+    item.addEventListener('click', () => selectIsland(island.id));
+    list.appendChild(item);
+  });
+
+  function showInfo(island) {
+    document.getElementById('info-name').textContent = island.label;
+    document.getElementById('info-name').style.color = island.color;
+    document.getElementById('info-name').style.textShadow = `0 0 10px ${island.color}`;
+    document.getElementById('info-desc').textContent = island.desc;
+  }
+
+  function selectIsland(id) {
+    // Clear previous
+    document.querySelectorAll('.island-node').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.island-list-item').forEach(n => n.classList.remove('active'));
+
+    selectedId = id;
+    const island = islands.find(i => i.id === id);
+    document.getElementById('node-' + id)?.classList.add('active');
+    document.getElementById('list-' + id)?.classList.add('active');
+    showInfo(island);
+
+    const node = document.getElementById('node-' + id);
+    const x = island.x.toFixed(1);
+    const y = island.y.toFixed(1);
+    document.getElementById('coords').textContent = `${x} · ${y}`;
+  }
+
+  // Player position
+  let playerX = 50, playerY = 50;
+  const playerMarker = document.getElementById('player-marker');
+
+  if (sdk) {
+    sdk.setMessageListener((msg) => {
+      try {
+        const data = JSON.parse(msg);
+        if (data.playerX !== undefined) {
+          playerX = data.playerX;
+          playerY = data.playerY;
+          playerMarker.style.left = playerX + '%';
+          playerMarker.style.top = playerY + '%';
+          document.getElementById('coords').textContent = `${playerX.toFixed(1)} · ${playerY.toFixed(1)}`;
+        }
+      } catch(e) {}
+    });
+  }
+
+  function closeMap() {
+    if (sdk) sdk.closeIframe();
+  }
+
+  // ESC to close
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMap();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minimap HUD</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+  <script src="https://portals-labs.github.io/portals-sdk/portals-sdk.js?v=10005456"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      background: transparent !important;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+    }
+
+    :root {
+      --cyan: #00ffe7;
+      --magenta: #ff00aa;
+      --yellow: #ffe600;
+      --dark: #050a0e;
+      --grid: rgba(0, 255, 231, 0.07);
+    }
+
+    /* ── MINIMAP CONTAINER ── */
+    #minimap-wrap {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 160px;
+      cursor: pointer;
+      user-select: none;
+      filter: drop-shadow(0 0 12px rgba(0,255,231,0.5));
+      transition: filter 0.2s;
+    }
+
+    #minimap-wrap:hover {
+      filter: drop-shadow(0 0 20px rgba(0,255,231,0.9));
+    }
+
+    /* Corner bracket decoration */
+    .bracket {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-color: var(--cyan);
+      border-style: solid;
+      z-index: 10;
+    }
+    .bracket.tl { top: -2px; left: -2px; border-width: 2px 0 0 2px; }
+    .bracket.tr { top: -2px; right: -2px; border-width: 2px 2px 0 0; }
+    .bracket.bl { bottom: -2px; left: -2px; border-width: 0 0 2px 2px; }
+    .bracket.br { bottom: -2px; right: -2px; border-width: 0 2px 2px 0; }
+
+    /* Map canvas */
+    #minimap-canvas {
+      width: 160px;
+      height: 160px;
+      background: rgba(5, 10, 14, 0.92);
+      border: 1px solid rgba(0,255,231,0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Scanline effect */
+    #minimap-canvas::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,255,231,0.03) 2px,
+        rgba(0,255,231,0.03) 4px
+      );
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    /* Grid lines on map */
+    #minimap-canvas::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,255,231,0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,231,0.07) 1px, transparent 1px);
+      background-size: 20px 20px;
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    /* Island dots on minimap */
+    .island-dot {
+      position: absolute;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: all 0.3s;
+      z-index: 6;
+    }
+
+    .island-dot .dot-core {
+      border-radius: 50%;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    .island-dot .dot-label {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: -14px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 6px;
+      color: var(--cyan);
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.2s;
+      text-shadow: 0 0 4px var(--cyan);
+    }
+
+    #minimap-wrap:hover .island-dot .dot-label { opacity: 1; }
+
+    /* Player dot */
+    #player-dot {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: var(--yellow);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 8;
+      box-shadow: 0 0 6px var(--yellow), 0 0 12px var(--yellow);
+      animation: player-pulse 1s ease-in-out infinite;
+    }
+
+    #player-dot::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border: 1px solid var(--yellow);
+      border-radius: 50%;
+      opacity: 0.4;
+      animation: player-ring 1s ease-in-out infinite;
+    }
+
+    /* Header bar */
+    #map-header {
+      background: rgba(0,255,231,0.06);
+      border-bottom: 1px solid rgba(0,255,231,0.2);
+      padding: 4px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #map-header .title {
+      font-family: 'Orbitron', monospace;
+      font-size: 7px;
+      font-weight: 700;
+      color: var(--cyan);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    #map-header .hint {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 6px;
+      color: rgba(0,255,231,0.4);
+      letter-spacing: 1px;
+    }
+
+    /* Ping animation on click */
+    #ping {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border: 1px solid var(--cyan);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      opacity: 0;
+      z-index: 9;
+    }
+
+    #ping.active {
+      animation: ping-expand 0.6s ease-out forwards;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes pulse-dot {
+      0%, 100% { box-shadow: 0 0 3px currentColor; }
+      50% { box-shadow: 0 0 8px currentColor, 0 0 14px currentColor; }
+    }
+
+    @keyframes player-pulse {
+      0%, 100% { box-shadow: 0 0 6px var(--yellow); }
+      50% { box-shadow: 0 0 12px var(--yellow), 0 0 20px rgba(255,230,0,0.4); }
+    }
+
+    @keyframes player-ring {
+      0% { transform: scale(1); opacity: 0.6; }
+      100% { transform: scale(2); opacity: 0; }
+    }
+
+    @keyframes ping-expand {
+      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
+    }
+
+    /* Scan line sweep */
+    #scan-line {
+      position: absolute;
+      left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(0,255,231,0.4), transparent);
+      z-index: 7;
+      animation: scan 3s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes scan {
+      0% { top: 0; opacity: 1; }
+      100% { top: 160px; opacity: 0.3; }
+    }
+
+    /* Compass rose */
+    #compass {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      width: 18px;
+      height: 18px;
+      z-index: 8;
+      opacity: 0.6;
+    }
+
+    #compass svg { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+
+<div id="minimap-wrap" onclick="openFullMap()">
+  <div class="bracket tl"></div>
+  <div class="bracket tr"></div>
+  <div class="bracket bl"></div>
+  <div class="bracket br"></div>
+
+  <div id="map-header">
+    <span class="title">NAV</span>
+    <span class="hint">TAP FOR MAP</span>
+  </div>
+
+  <div id="minimap-canvas">
+    <div id="scan-line"></div>
+    <div id="ping"></div>
+
+    <div id="compass">
+      <svg viewBox="0 0 20 20" fill="none">
+        <line x1="10" y1="2" x2="10" y2="18" stroke="rgba(0,255,231,0.4)" stroke-width="0.5"/>
+        <line x1="2" y1="10" x2="18" y2="10" stroke="rgba(0,255,231,0.4)" stroke-width="0.5"/>
+        <polygon points="10,2 8,8 10,7 12,8" fill="#00ffe7" opacity="0.8"/>
+        <text x="9" y="5" font-size="3" fill="#00ffe7" font-family="monospace">N</text>
+      </svg>
+    </div>
+
+    <!-- Island dots injected by JS -->
+    <div id="player-dot" style="left:50%;top:50%;"></div>
+  </div>
+</div>
+
+<script>
+  const sdk = typeof PortalsSdk !== 'undefined' ? PortalsSdk : null;
+
+  // Island positions on minimap (as % of 160x160 canvas)
+  // Matches the 12-island world layout
+  const islands = [
+    { id: 'midhold',      label: 'MIDHOLD',      x: 50,  y: 50,  color: '#00ffe7', size: 8 },
+    { id: 'ashveil',      label: 'ASHVEIL',       x: 15,  y: 18,  color: '#ff4444', size: 5 },
+    { id: 'greenhollow',  label: 'GREENHOLLOW',   x: 50,  y: 12,  color: '#00ff88', size: 6 },
+    { id: 'stonecrest',   label: 'STONECREST',    x: 82,  y: 15,  color: '#aaaaaa', size: 5 },
+    { id: 'driftwood',    label: 'DRIFTWOOD BAY', x: 90,  y: 50,  color: '#ffcc44', size: 5 },
+    { id: 'emberfall',    label: 'EMBERFALL',     x: 80,  y: 80,  color: '#ff8800', size: 5 },
+    { id: 'coldspire',    label: 'COLDSPIRE',     x: 50,  y: 90,  color: '#88ccff', size: 5 },
+    { id: 'murkfen',      label: 'MURKFEN',       x: 20,  y: 82,  color: '#44aa44', size: 5 },
+    { id: 'ironhold',     label: 'IRONHOLD',      x: 10,  y: 50,  color: '#888888', size: 6 },
+    { id: 'tidewatch',    label: 'TIDEWATCH',     x: 50,  y: 4,   color: '#00ccff', size: 4 },
+    { id: 'gilded',       label: 'GILDED SANDS',  x: 94,  y: 30,  color: '#ffee00', size: 4 },
+    { id: 'whisperwood',  label: 'WHISPERWOOD',   x: 6,   y: 30,  color: '#cc44ff', size: 5 },
+  ];
+
+  const canvas = document.getElementById('minimap-canvas');
+
+  // Render island dots
+  islands.forEach(island => {
+    const dot = document.createElement('div');
+    dot.className = 'island-dot';
+    dot.style.left = island.x + '%';
+    dot.style.top = island.y + '%';
+    dot.innerHTML = `
+      <div class="dot-core" style="
+        width:${island.size}px;
+        height:${island.size}px;
+        background:${island.color};
+        box-shadow:0 0 6px ${island.color};
+        border-radius:50%;
+        color:${island.color};
+      "></div>
+      <div class="dot-label" style="color:${island.color}">${island.label}</div>
+    `;
+    canvas.appendChild(dot);
+  });
+
+  // Player position (updated via SDK messages)
+  let playerX = 50, playerY = 50;
+  const playerDot = document.getElementById('player-dot');
+
+  function updatePlayerPos(x, y) {
+    playerX = x; playerY = y;
+    playerDot.style.left = x + '%';
+    playerDot.style.top = y + '%';
+  }
+
+  // Listen for Portals messages
+  if (sdk) {
+    sdk.setMessageListener((msg) => {
+      try {
+        const data = JSON.parse(msg);
+        if (data.playerX !== undefined) updatePlayerPos(data.playerX, data.playerY);
+      } catch(e) {}
+    });
+  }
+
+  // Click ping effect
+  canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const ping = document.getElementById('ping');
+    ping.style.left = x + 'px';
+    ping.style.top = y + 'px';
+    ping.classList.remove('active');
+    void ping.offsetWidth;
+    ping.classList.add('active');
+  });
+
+  // Open full map
+  function openFullMap() {
+    if (sdk) {
+      sdk.sendMessageToUnity(JSON.stringify({
+        action: 'open_fullmap'
+      }));
+    }
+    // Also open the fullmap iframe directly
+    window.parent.postMessage({ action: 'open_fullmap' }, '*');
+  }
+</script>
+</body>
+</html>
