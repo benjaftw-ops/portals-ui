@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GREEN THUMB — Grow Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0f0a;
+  --panel: #131510;
+  --border: #2a3020;
+  --green: #4aff6e;
+  --green2: #2acc48;
+  --yellow: #f5d742;
+  --orange: #ff8c42;
+  --red: #ff4242;
+  --blue: #42b8ff;
+  --purple: #c842ff;
+  --text: #c8d4b0;
+  --muted: #4a5040;
+  --gold: #ffd700;
+}
+* { margin:0; padding:0; box-sizing:border-box; image-rendering:pixelated; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
+}
+
+/* SCANLINE OVERLAY */
+body::after {
+  content:'';
+  position:fixed;
+  inset:0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+  pointer-events:none;
+  z-index:9999;
+}
+
+#game {
+  width: 960px;
+  max-width: 100vw;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+/* ── HEADER ── */
+#header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 2px solid var(--border);
+  padding: 8px 16px;
+  background: var(--panel);
+  position: relative;
+  overflow: hidden;
+}
+#header::before {
+  content:'';
+  position:absolute;
+  inset:0;
+  background: linear-gradient(90deg, transparent, rgba(74,255,110,0.04), transparent);
+  animation: sweep 4s ease-in-out infinite;
+}
+@keyframes sweep { 0%,100%{transform:translateX(-100%)} 50%{transform:translateX(100%)} }
+
+.logo { font-size: 32px; color: var(--green); text-shadow: 0 0 20px var(--green), 0 0 40px rgba(74,255,110,0.3); letter-spacing: 3px; }
+.logo span { color: var(--yellow); }
+
+.stats-bar { display: flex; gap: 24px; align-items: center; }
+.stat { display: flex; flex-direction: column; align-items: center; }
+.stat-label { font-size: 13px; color: var(--muted); letter-spacing: 2px; }
+.stat-val { font-size: 24px; }
+.money { color: var(--gold); text-shadow: 0 0 10px rgba(255,215,0,0.5); }
+.day-val { color: var(--blue); }
+.rep-val { color: var(--purple); }
+
+/* ── MAIN LAYOUT ── */
+#main {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 8px;
+}
+
+/* ── GROW ROOM ── */
+#grow-room {
+  background: var(--panel);
+  border: 2px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.room-header {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: var(--muted);
+  letter-spacing: 2px;
+}
+.room-header span { color: var(--green); font-size: 20px; }
+
+#room-canvas {
+  display: block;
+  width: 100%;
+  cursor: pointer;
+}
+
+/* ── RIGHT PANEL ── */
+#right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── PANEL CARD ── */
+.card {
+  background: var(--panel);
+  border: 2px solid var(--border);
+  padding: 12px;
+}
+.card-title {
+  font-size: 14px;
+  letter-spacing: 3px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+}
+
+/* ── EQUIPMENT ── */
+.equip-grid { display: flex; flex-direction: column; gap: 6px; }
+.equip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 8px;
+  background: #0a0c08;
+  border: 1px solid var(--border);
+}
+.equip-name { font-size: 16px; color: var(--text); }
+.equip-level { font-size: 14px; }
+.equip-btn {
+  font-family: 'VT323', monospace;
+  font-size: 15px;
+  background: transparent;
+  border: 1px solid var(--green);
+  color: var(--green);
+  padding: 2px 10px;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.equip-btn:hover { background: var(--green); color: #000; }
+.equip-btn:disabled { border-color: var(--muted); color: var(--muted); cursor: not-allowed; }
+.equip-btn:disabled:hover { background: transparent; color: var(--muted); }
+
+/* ── STRAIN SELECTOR ── */
+.strain-list { display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto; }
+.strain-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  background: #0a0c08;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: border-color 0.1s;
+}
+.strain-row:hover { border-color: var(--green2); }
+.strain-row.selected { border-color: var(--green); background: #0f1a0e; }
+.strain-row.locked { opacity: 0.4; cursor: not-allowed; }
+.strain-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.strain-name { font-size: 16px; flex: 1; }
+.strain-info { font-size: 13px; color: var(--muted); }
+
+/* ── INVENTORY ── */
+.inv-scroll { max-height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
+.inv-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  background: #0a0c08;
+  border: 1px solid var(--border);
+  font-size: 15px;
+}
+.inv-sell {
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  background: transparent;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  padding: 1px 8px;
+  cursor: pointer;
+}
+.inv-sell:hover { background: var(--gold); color: #000; }
+
+/* ── LOG ── */
+#log {
+  background: var(--panel);
+  border: 2px solid var(--border);
+  padding: 10px 14px;
+  height: 90px;
+  overflow-y: auto;
+  font-size: 15px;
+}
+.log-line { color: var(--muted); line-height: 1.5; }
+.log-line.good { color: var(--green); }
+.log-line.great { color: var(--gold); }
+.log-line.warn { color: var(--orange); }
+.log-line.info { color: var(--blue); }
+
+/* ── BOTTOM BAR ── */
+#bottom-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+/* ── TABS ── */
+.tab-row { display: flex; gap: 0; margin-bottom: 10px; }
+.tab-btn {
+  font-family: 'VT323', monospace;
+  font-size: 15px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 4px 12px;
+  cursor: pointer;
+  letter-spacing: 1px;
+}
+.tab-btn.active { background: #0a0c08; color: var(--green); border-color: var(--green); }
+
+/* ── MODAL ── */
+#modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 100;
+  justify-content: center;
+  align-items: center;
+}
+#modal-overlay.open { display: flex; }
+#modal {
+  background: var(--panel);
+  border: 2px solid var(--green);
+  padding: 24px;
+  min-width: 360px;
+  max-width: 480px;
+  box-shadow: 0 0 40px rgba(74,255,110,0.2);
+}
+.modal-title { font-size: 22px; color: var(--green); margin-bottom: 16px; letter-spacing: 2px; }
+.modal-body { font-size: 16px; line-height: 1.8; color: var(--text); margin-bottom: 20px; }
+.modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
+.modal-btn {
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  background: transparent;
+  border: 1px solid;
+  padding: 4px 20px;
+  cursor: pointer;
+}
+.modal-btn.primary { border-color: var(--green); color: var(--green); }
+.modal-btn.primary:hover { background: var(--green); color: #000; }
+.modal-btn.cancel { border-color: var(--muted); color: var(--muted); }
+.modal-btn.cancel:hover { border-color: var(--red); color: var(--red); }
+
+/* SCROLLBARS */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #0a0c08; }
+::-webkit-scrollbar-thumb { background: var(--border); }
+
+/* MARKET ROWS */
+.market-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  background: #0a0c08;
+  border: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.market-price { color: var(--gold); font-size: 16px; }
+.market-demand { font-size: 13px; }
+
+/* PROGRESS BAR */
+.prog-wrap { background: #0a0c08; height: 8px; border: 1px solid var(--border); margin-top: 3px; }
+.prog-fill { height: 100%; transition: width 0.3s; }
+
+/* PLANT SLOT TOOLTIP */
+#tooltip {
+  position: fixed;
+  background: var(--panel);
+  border: 1px solid var(--green);
+  padding: 8px 12px;
+  font-size: 15px;
+  pointer-events: none;
+  display: none;
+  z-index: 200;
+  min-width: 180px;
+}
+</style>
+</head>
+<body>
+
+<div id="game">
+  <!-- HEADER -->
+  <div id="header">
+    <div class="logo">🌿 <span>GREEN</span> THUMB</div>
+    <div class="stats-bar">
+      <div class="stat">
+        <div class="stat-label">CASH</div>
+        <div class="stat-val money" id="s-money">$500</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">DAY</div>
+        <div class="stat-val day-val" id="s-day">1</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">REP</div>
+        <div class="stat-val rep-val" id="s-rep">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">HARVEST</div>
+        <div class="stat-val" style="color:var(--green)" id="s-harvest">0</div>
+      </div>
+      <button style="font-family:'VT323',monospace;font-size:20px;background:transparent;border:2px solid var(--green2);color:var(--green);padding:6px 18px;cursor:pointer;letter-spacing:2px;" onclick="G.advanceDay()">⏭ NEXT DAY</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <!-- GROW ROOM -->
+    <div id="grow-room">
+      <div class="room-header">
+        <span id="room-name">GROW ROOM Lv.1</span>
+        <div style="display:flex;gap:14px;font-size:15px;">
+          <span>💡 <span id="light-label">Basic Bulb</span></span>
+          <span>💧 <span id="water-label">Hand Water</span></span>
+          <span>🌡 <span id="climate-label">No AC</span></span>
+          <span>🌱 <span id="soil-label">Basic Soil</span></span>
+        </div>
+      </div>
+      <canvas id="room-canvas" width="620" height="400"></canvas>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div id="right-panel">
+
+      <!-- STRAINS -->
+      <div class="card">
+        <div class="card-title">SELECT STRAIN</div>
+        <div class="strain-list" id="strain-list"></div>
+      </div>
+
+      <!-- EQUIPMENT -->
+      <div class="card">
+        <div class="card-title">EQUIPMENT</div>
+        <div class="equip-grid" id="equip-grid"></div>
+      </div>
+
+      <!-- INVENTORY -->
+      <div class="card">
+        <div class="card-title">STASH</div>
+        <div class="inv-scroll" id="inv-list"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:15px;">
+          <span style="color:var(--muted)">TOTAL:</span>
+          <span id="inv-total" style="color:var(--gold)">0g</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM -->
+  <div id="bottom-bar">
+    <!-- MARKET -->
+    <div class="card">
+      <div class="card-title">MARKET</div>
+      <div id="market-list"></div>
+    </div>
+
+    <!-- SHOP -->
+    <div class="card">
+      <div class="card-title">SEED SHOP</div>
+      <div id="shop-list" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;"></div>
+    </div>
+
+    <!-- STATS/UPGRADES -->
+    <div class="card">
+      <div class="card-title">GROW STATS</div>
+      <div id="stats-panel" style="font-size:15px;line-height:2;"></div>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div id="log"></div>
+</div>
+
+<div id="tooltip"></div>
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div id="modal">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-btns" id="modal-btns"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  STRAINS
+// ═══════════════════════════════════════════════════════
+const STRAINS = [
+  {
+    id:0, name:"OG KUSH",       tier:1, color:"#4aff6e", dotColor:"#2acc48",
+    growDays:5,  yield:[8,14],  potency:0.6,  basePrice:18,
+    reqLight:0, reqClimate:0, reqSoil:0,
+    desc:"Classic beginner strain. Forgiving and consistent.",
+    unlocked:true, seedCost:0,
+  },
+  {
+    id:1, name:"BLUE DREAM",    tier:1, color:"#42b8ff", dotColor:"#2090d0",
+    growDays:6,  yield:[10,16], potency:0.65, basePrice:22,
+    reqLight:0, reqClimate:0, reqSoil:0,
+    desc:"Sweet berry aroma. Smooth high.",
+    unlocked:true, seedCost:0,
+  },
+  {
+    id:2, name:"SOUR DIESEL",   tier:2, color:"#f5d742", dotColor:"#c8a820",
+    growDays:7,  yield:[12,20], potency:0.72, basePrice:28,
+    reqLight:1, reqClimate:0, reqSoil:0,
+    desc:"Fuel-scented. Needs better lighting.",
+    unlocked:false, seedCost:200,
+  },
+  {
+    id:3, name:"PURPLE HAZE",   tier:2, color:"#c842ff", dotColor:"#9020c8",
+    growDays:7,  yield:[11,18], potency:0.75, basePrice:30,
+    reqLight:1, reqClimate:1, reqSoil:0,
+    desc:"Deep purple buds. Requires climate control.",
+    unlocked:false, seedCost:250,
+  },
+  {
+    id:4, name:"WHITE WIDOW",   tier:2, color:"#e8e8e0", dotColor:"#b0b0a8",
+    growDays:8,  yield:[14,22], potency:0.78, basePrice:35,
+    reqLight:1, reqClimate:0, reqSoil:1,
+    desc:"Dense white crystals. Needs premium soil.",
+    unlocked:false, seedCost:300,
+  },
+  {
+    id:5, name:"GORILLA GLUE",  tier:3, color:"#c8a060", dotColor:"#906030",
+    growDays:8,  yield:[16,26], potency:0.82, basePrice:42,
+    reqLight:2, reqClimate:1, reqSoil:1,
+    desc:"Super sticky. Strong lights required.",
+    unlocked:false, seedCost:500,
+  },
+  {
+    id:6, name:"GELATO",        tier:3, color:"#ff8c42", dotColor:"#c05010",
+    growDays:9,  yield:[15,24], potency:0.85, basePrice:48,
+    reqLight:2, reqClimate:2, reqSoil:1,
+    desc:"Sweet dessert strain. Sensitive to temperature.",
+    unlocked:false, seedCost:600,
+  },
+  {
+    id:7, name:"WEDDING CAKE",  tier:3, color:"#ffb8c0", dotColor:"#c07080",
+    growDays:9,  yield:[18,28], potency:0.88, basePrice:55,
+    reqLight:2, reqClimate:2, reqSoil:2,
+    desc:"Premium dense nugs. Full setup required.",
+    unlocked:false, seedCost:800,
+  },
+  {
+    id:8, name:"RUNTZ",         tier:4, color:"#ff42ff", dotColor:"#c020c0",
+    growDays:10, yield:[20,32], potency:0.92, basePrice:70,
+    reqLight:3, reqClimate:2, reqSoil:2,
+    desc:"Rare exotic. Demands top-tier lighting.",
+    unlocked:false, seedCost:1200,
+  },
+  {
+    id:9, name:"COSMIC OG",     tier:4, color:"#42ffff", dotColor:"#20c0c0",
+    growDays:12, yield:[25,40], potency:1.0,  basePrice:100,
+    reqLight:3, reqClimate:3, reqSoil:3,
+    desc:"Legendary strain. Maximum equipment needed.",
+    unlocked:false, seedCost:2500,
+  },
+];
+
+// ═══════════════════════════════════════════════════════
+//  EQUIPMENT TIERS
+// ═══════════════════════════════════════════════════════
+const EQUIPMENT = {
+  light: {
+    name:"LIGHTING",
+    levels:[
+      {name:"Basic Bulb",    yieldMult:1.0, potencyMult:1.0,  cost:0,    color:"#f5e060"},
+      {name:"HID Lamp",      yieldMult:1.25,potencyMult:1.1,  cost:400,  color:"#ffe090"},
+      {name:"LED Panel",     yieldMult:1.55,potencyMult:1.22, cost:900,  color:"#80d8ff"},
+      {name:"Full Spectrum", yieldMult:2.0, potencyMult:1.4,  cost:2000, color:"#ffffff"},
+    ]
+  },
+  climate: {
+    name:"CLIMATE",
+    levels:[
+      {name:"No AC",       yieldMult:1.0, potencyMult:1.0,  cost:0,    color:"#888"},
+      {name:"Fan Only",    yieldMult:1.1, potencyMult:1.08, cost:300,  color:"#80c8ff"},
+      {name:"Mini AC",     yieldMult:1.3, potencyMult:1.18, cost:800,  color:"#40a8ff"},
+      {name:"Full HVAC",   yieldMult:1.6, potencyMult:1.35, cost:1800, color:"#20e0ff"},
+    ]
+  },
+  soil: {
+    name:"SOIL/MEDIUM",
+    levels:[
+      {name:"Basic Soil",   yieldMult:1.0, potencyMult:1.0,  cost:0,    color:"#806040"},
+      {name:"Premium Mix",  yieldMult:1.2, potencyMult:1.12, cost:350,  color:"#604020"},
+      {name:"Coco Coir",    yieldMult:1.45,potencyMult:1.25, cost:750,  color:"#a07040"},
+      {name:"Aeroponics",   yieldMult:1.9, potencyMult:1.45, cost:1600, color:"#60c8a0"},
+    ]
+  },
+  water: {
+    name:"WATERING",
+    levels:[
+      {name:"Hand Water",   yieldMult:1.0, potencyMult:1.0,  cost:0,    color:"#4080c0"},
+      {name:"Drip System",  yieldMult:1.15,potencyMult:1.05, cost:200,  color:"#4090e0"},
+      {name:"Auto Drip",    yieldMult:1.35,potencyMult:1.12, cost:600,  color:"#20b8ff"},
+      {name:"Hydro System", yieldMult:1.7, potencyMult:1.3,  cost:1400, color:"#00e8ff"},
+    ]
+  },
+};
+
+// ═══════════════════════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════════════════════
+const SLOTS = 12; // grow slots
+const GS = {
+  money: 500,
+  day: 1,
+  rep: 0,
+  totalHarvest: 0,
+  selectedStrain: 0,
+  equip: { light:0, climate:0, soil:0, water:0 },
+  slots: Array(SLOTS).fill(null), // each: {strainId, daysLeft, totalDays, stage}
+  inventory: {}, // strainId -> grams
+  marketPrices: {},
+  marketDemand: {},
+  log: [],
+};
+
+// Recalculate market prices each day
+function refreshMarket() {
+  STRAINS.forEach(s => {
+    const demand = 0.7 + Math.random() * 0.6;
+    GS.marketDemand[s.id] = demand;
+    GS.marketPrices[s.id] = Math.round(s.basePrice * demand * (1 + GS.rep * 0.005));
+  });
+}
+refreshMarket();
+
+// ═══════════════════════════════════════════════════════
+//  GAME LOGIC
+// ═══════════════════════════════════════════════════════
+const G = {
+  plant(slotIdx) {
+    const strain = STRAINS[GS.selectedStrain];
+    if (!strain.unlocked) { addLog("🔒 Unlock this strain first!", "warn"); return; }
+
+    // Check equipment requirements
+    if (GS.equip.light < strain.reqLight) {
+      addLog(`💡 Need ${EQUIPMENT.light.levels[strain.reqLight].name} for ${strain.name}`, "warn"); return;
+    }
+    if (GS.equip.climate < strain.reqClimate) {
+      addLog(`🌡 Need ${EQUIPMENT.climate.levels[strain.reqClimate].name} for ${strain.name}`, "warn"); return;
+    }
+    if (GS.equip.soil < strain.reqSoil) {
+      addLog(`🌱 Need ${EQUIPMENT.soil.levels[strain.reqSoil].name} for ${strain.name}`, "warn"); return;
+    }
+
+    GS.slots[slotIdx] = {
+      strainId: GS.selectedStrain,
+      daysLeft: strain.growDays,
+      totalDays: strain.growDays,
+      stage: 0,
+    };
+    addLog(`🌱 Planted ${strain.name} in slot ${slotIdx+1}`, "good");
+    render();
+    updateUI();
+  },
+
+  harvest(slotIdx) {
+    const slot = GS.slots[slotIdx];
+    if (!slot || slot.daysLeft > 0) return;
+    const strain = STRAINS[slot.strainId];
+
+    // Calculate yield with all equipment multipliers
+    const el = EQUIPMENT.light.levels[GS.equip.light];
+    const ec = EQUIPMENT.climate.levels[GS.equip.climate];
+    const es = EQUIPMENT.soil.levels[GS.equip.soil];
+    const ew = EQUIPMENT.water.levels[GS.equip.water];
+
+    const totalMult = el.yieldMult * ec.yieldMult * es.yieldMult * ew.yieldMult;
+    const base = strain.yield[0] + Math.random() * (strain.yield[1] - strain.yield[0]);
+    const grams = Math.round(base * totalMult);
+
+    GS.inventory[slot.strainId] = (GS.inventory[slot.strainId] || 0) + grams;
+    GS.totalHarvest += grams;
+    GS.slots[slotIdx] = null;
+
+    addLog(`✂ Harvested ${grams}g of ${strain.name}!`, "great");
+    GS.rep = Math.min(100, GS.rep + 1);
+    render(); updateUI();
+  },
+
+  sellAll(strainId) {
+    const grams = GS.inventory[strainId] || 0;
+    if (!grams) return;
+    const price = GS.marketPrices[strainId];
+    const total = grams * price;
+    GS.money += total;
+    delete GS.inventory[strainId];
+    addLog(`💰 Sold ${grams}g of ${STRAINS[strainId].name} for $${total}!`, "great");
+    GS.rep = Math.min(100, GS.rep + Math.floor(grams / 10));
+    updateUI();
+  },
+
+  sellSome(strainId, grams) {
+    if (!grams || grams <= 0) return;
+    const have = GS.inventory[strainId] || 0;
+    const sell = Math.min(grams, have);
+    const price = GS.marketPrices[strainId];
+    const total = sell * price;
+    GS.money += total;
+    GS.inventory[strainId] = have - sell;
+    if (GS.inventory[strainId] <= 0) delete GS.inventory[strainId];
+    addLog(`💰 Sold ${sell}g for $${total}`, "great");
+    updateUI();
+  },
+
+  buyEquip(type) {
+    const cur = GS.equip[type];
+    const next = EQUIPMENT[type].levels[cur + 1];
+    if (!next) { addLog("Already maxed!", "warn"); return; }
+    if (GS.money < next.cost) { addLog(`💸 Need $${next.cost}`, "warn"); return; }
+    showModal(
+      `UPGRADE ${EQUIPMENT[type].name}`,
+      `Upgrade to <b>${next.color ? `<span style="color:${next.color}">${next.name}</span>` : next.name}</b>?\n\nYield bonus: +${Math.round((next.yieldMult-1)*100)}%\nPotency bonus: +${Math.round((next.potencyMult-1)*100)}%\n\nCost: <span style="color:#ffd700">$${next.cost}</span>`,
+      () => {
+        GS.money -= next.cost;
+        GS.equip[type]++;
+        addLog(`⬆ Upgraded to ${next.name}!`, "info");
+        updateUI(); render();
+      }
+    );
+  },
+
+  buyStrain(strainId) {
+    const strain = STRAINS[strainId];
+    if (strain.unlocked) return;
+    if (GS.money < strain.seedCost) { addLog(`💸 Need $${strain.seedCost} for seeds`, "warn"); return; }
+    showModal(
+      `BUY SEEDS: ${strain.name}`,
+      `Tier ${strain.tier} strain.\n\n${strain.desc}\n\nGrow time: ${strain.growDays} days\nBase price: $${strain.basePrice}/g\n\nCost: <span style="color:#ffd700">$${strain.seedCost}</span>`,
+      () => {
+        GS.money -= strain.seedCost;
+        strain.unlocked = true;
+        addLog(`🌿 Unlocked ${strain.name}!`, "great");
+        updateUI();
+      }
+    );
+  },
+
+  advanceDay() {
+    GS.day++;
+    // Grow all plants
+    let readyCount = 0;
+    GS.slots.forEach((slot, i) => {
+      if (!slot) return;
+      slot.daysLeft = Math.max(0, slot.daysLeft - 1);
+      // Stage updates
+      const pct = 1 - slot.daysLeft / slot.totalDays;
+      slot.stage = pct < 0.25 ? 0 : pct < 0.5 ? 1 : pct < 0.85 ? 2 : 3;
+      if (slot.daysLeft === 0) readyCount++;
+    });
+    refreshMarket();
+    if (readyCount > 0) addLog(`🌿 ${readyCount} plant(s) ready to harvest!`, "great");
+    addLog(`📅 Day ${GS.day} begins. Market prices updated.`, "info");
+    render(); updateUI();
+  },
+
+  clearSlot(slotIdx) {
+    const slot = GS.slots[slotIdx];
+    if (!slot) return;
+    if (slot.daysLeft > 0) {
+      showModal("REMOVE PLANT?", "Remove this plant early?\nAll progress will be lost.", () => {
+        GS.slots[slotIdx] = null;
+        addLog("🗑 Plant removed.", "warn");
+        render(); updateUI();
+      });
+    } else {
+      this.harvest(slotIdx);
+    }
+  }
+};
+
+// ═══════════════════════════════════════════════════════
+//  CANVAS RENDERING
+// ═══════════════════════════════════════════════════════
+const canvas = document.getElementById('room-canvas');
+const ctx = canvas.getContext('2d');
+const CW = 620, CH = 400;
+canvas.width = CW; canvas.height = CH;
+
+// Slot grid: 4 cols × 3 rows
+const COLS = 4, ROWS = 3;
+const SW = Math.floor(CW / COLS), SH = Math.floor(CH / ROWS);
+
+let frameN = 0;
+function render() {
+  frameN++;
+  ctx.fillStyle = '#0a0c08';
+  ctx.fillRect(0, 0, CW, CH);
+
+  // Floor
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const sx = x * SW, sy = y * SH;
+      // Pot base
+      ctx.fillStyle = '#151a12';
+      ctx.fillRect(sx+1, sy+1, SW-2, SH-2);
+      ctx.strokeStyle = '#1e2418';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(sx+1, sy+1, SW-2, SH-2);
+    }
+  }
+
+  // Draw light glow from equipment
+  const lightLevel = GS.equip.light;
+  const lightColors = ['rgba(245,224,96,0.04)','rgba(255,220,120,0.07)','rgba(128,216,255,0.09)','rgba(255,255,255,0.12)'];
+  const grd = ctx.createRadialGradient(CW/2, 0, 10, CW/2, 0, CH*1.2);
+  grd.addColorStop(0, lightColors[lightLevel]);
+  grd.addColorStop(1, 'transparent');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, CW, CH);
+
+  // Draw each slot
+  for (let i = 0; i < SLOTS; i++) {
+    const col = i % COLS, row = Math.floor(i / COLS);
+    const sx = col * SW + SW/2, sy = row * SH + SH/2;
+    drawSlot(ctx, i, sx, sy, SW, SH);
+  }
+
+  // Light fixtures at top
+  drawLights(ctx, lightLevel);
+}
+
+function drawSlot(ctx, idx, cx, cy, sw, sh) {
+  const slot = GS.slots[idx];
+  const x = cx - sw/2, y = cy - sh/2;
+
+  if (!slot) {
+    // Empty pot
+    drawPot(ctx, cx, cy + sh*0.2, sw * 0.35, sh * 0.25, '#3a2a1a', '#2a1a0a');
+    // Soil
+    ctx.fillStyle = '#2a1a0a';
+    ctx.fillRect(cx - sw*0.16, cy + sh*0.05, sw*0.32, sh*0.06);
+    // + indicator
+    ctx.fillStyle = '#2a3520';
+    ctx.font = `${Math.floor(sh*0.2)}px VT323`;
+    ctx.textAlign = 'center';
+    ctx.fillText('+', cx, cy - sh*0.05);
+    return;
+  }
+
+  const strain = STRAINS[slot.strainId];
+  const progress = 1 - slot.daysLeft / slot.totalDays;
+  const wave = Math.sin(frameN * 0.04 + idx) * 1.5;
+
+  // Pot
+  drawPot(ctx, cx, cy + sh*0.22, sw * 0.38, sh * 0.28, '#4a3020', '#3a2010');
+
+  // Draw plant based on stage
+  if (slot.stage === 0) {
+    // Seedling - small sprout
+    drawSeedling(ctx, cx, cy, sh, strain.color, wave);
+  } else if (slot.stage === 1) {
+    // Veg - leafy plant
+    drawVeg(ctx, cx, cy, sh, strain.color, wave, progress);
+  } else if (slot.stage === 2) {
+    // Flowering - buds forming
+    drawFlowering(ctx, cx, cy, sh, strain.color, wave, progress);
+  } else {
+    // Ripe - full dense buds
+    drawRipe(ctx, cx, cy, sh, strain.color, wave);
+  }
+
+  // Progress bar at bottom of slot
+  const barX = x + 4, barY = y + sh - 10, barW = sw - 8, barH = 6;
+  ctx.fillStyle = '#0a0c08';
+  ctx.fillRect(barX, barY, barW, barH);
+  const pct = progress;
+  const barColor = slot.daysLeft === 0 ? '#4aff6e' : pct < 0.5 ? '#f5d742' : '#2acc48';
+  ctx.fillStyle = barColor;
+  ctx.fillRect(barX, barY, barW * Math.min(1, pct), barH);
+  if (slot.daysLeft === 0) {
+    // Glow
+    ctx.shadowColor = '#4aff6e';
+    ctx.shadowBlur = 8;
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.shadowBlur = 0;
+  }
+
+  // Days label
+  ctx.fillStyle = slot.daysLeft === 0 ? '#4aff6e' : '#888';
+  ctx.font = `13px VT323`;
+  ctx.textAlign = 'center';
+  ctx.fillText(slot.daysLeft === 0 ? 'READY!' : `${slot.daysLeft}d`, cx, y + sh - 12);
+}
+
+function drawPot(ctx, cx, by, w, h, col1, col2) {
+  // Trapezoid pot
+  ctx.fillStyle = col1;
+  ctx.beginPath();
+  ctx.moveTo(cx - w*0.6, by);
+  ctx.lineTo(cx + w*0.6, by);
+  ctx.lineTo(cx + w*0.45, by + h);
+  ctx.lineTo(cx - w*0.45, by + h);
+  ctx.closePath();
+  ctx.fill();
+  // Rim
+  ctx.fillStyle = col2;
+  ctx.fillRect(cx - w*0.62, by - h*0.1, w*1.24, h*0.15);
+  // Soil
+  ctx.fillStyle = '#2a1808';
+  ctx.fillRect(cx - w*0.58, by - h*0.04, w*1.16, h*0.1);
+}
+
+function drawSeedling(ctx, cx, cy, sh, color, wave) {
+  const h = sh * 0.22;
+  // Stem
+  ctx.strokeStyle = '#4a7030';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx + wave*0.3, cy + h*0.5);
+  ctx.lineTo(cx + wave*0.5, cy - h*0.3);
+  ctx.stroke();
+  // Two tiny leaves
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(cx + wave*0.5 - 6, cy - h*0.2, 6, 3, -0.5, 0, Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(cx + wave*0.5 + 6, cy - h*0.2, 6, 3, 0.5, 0, Math.PI*2);
+  ctx.fill();
+}
+
+function drawVeg(ctx, cx, cy, sh, color, wave, prog) {
+  const h = sh * 0.45;
+  const stemH = h * 0.7;
+  // Main stem
+  ctx.strokeStyle = '#4a8030';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + sh*0.1);
+  ctx.quadraticCurveTo(cx + wave*2, cy - stemH*0.4, cx + wave, cy - stemH);
+  ctx.stroke();
+
+  // Fan leaves (cannabis-style)
+  const leafColors = [color, lighten(color, -20)];
+  const leafCount = 4 + Math.floor(prog * 4);
+  for (let i = 0; i < leafCount; i++) {
+    const t = i / leafCount;
+    const lx = cx + Math.sin(t * Math.PI * 2 + wave * 0.1) * sh * 0.22;
+    const ly = cy - stemH * (0.2 + t * 0.7);
+    const lw = sh * (0.15 + prog * 0.08);
+    const lh = sh * (0.06 + prog * 0.03);
+    ctx.fillStyle = leafColors[i % 2];
+    drawCannaLeaf(ctx, lx, ly, lw, lh, t * Math.PI * 1.5);
+  }
+}
+
+function drawFlowering(ctx, cx, cy, sh, color, wave, prog) {
+  drawVeg(ctx, cx, cy - sh*0.04, sh, color, wave, 0.8);
+  // Bud sites
+  const budCount = 3 + Math.floor(prog * 5);
+  for (let i = 0; i < budCount; i++) {
+    const angle = (i / budCount) * Math.PI * 2 + wave * 0.05;
+    const dist = sh * (0.12 + Math.random() * 0.08);
+    const bx = cx + Math.cos(angle) * dist;
+    const by = cy - sh * (0.2 + i * 0.08);
+    const br = sh * (0.04 + prog * 0.03);
+    // Bud glow
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 4;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(bx, by, br, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // Trichomes hint
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.beginPath();
+    ctx.arc(bx - br*0.3, by - br*0.3, br*0.25, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+function drawRipe(ctx, cx, cy, sh, color, wave) {
+  // Dense bud cluster
+  const budPositions = [
+    [0, -0.35], [-0.12, -0.22], [0.12, -0.22],
+    [-0.08, -0.1], [0.08, -0.1], [0, -0.48],
+    [-0.15, -0.42], [0.15, -0.42],
+  ];
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 6;
+  budPositions.forEach(([dx, dy], i) => {
+    const bx = cx + dx * sh + Math.sin(wave * 0.3 + i) * 0.8;
+    const by = cy + dy * sh;
+    const r = sh * (0.07 + Math.sin(i*2.3)*0.015);
+    ctx.fillStyle = i % 2 === 0 ? color : darken(color, 20);
+    ctx.beginPath();
+    ctx.arc(bx, by, r, 0, Math.PI*2);
+    ctx.fill();
+    // White trichomes
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.beginPath();
+    ctx.arc(bx - r*0.35, by - r*0.35, r*0.3, 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.shadowBlur = 0;
+
+  // Stem
+  ctx.strokeStyle = '#5a9040';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(cx + wave*0.5, cy + sh*0.08);
+  ctx.lineTo(cx + wave*0.3, cy - sh*0.18);
+  ctx.stroke();
+
+  // Leaves under buds
+  ctx.fillStyle = darken(color, 30);
+  for (let i = 0; i < 5; i++) {
+    const a = (i/5)*Math.PI*2 + wave*0.05;
+    drawCannaLeaf(ctx, cx + Math.cos(a)*sh*0.18, cy - sh*0.1 + Math.sin(a)*sh*0.05, sh*0.16, sh*0.055, a);
+  }
+
+  // Ready glow pulse
+  const pulse = 0.5 + Math.sin(frameN * 0.08) * 0.5;
+  ctx.strokeStyle = `rgba(74,255,110,${pulse * 0.6})`;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(
+    cx - SW/2 + 2, cy - SH/2 + 2,
+    SW - 4, SH - 4
+  );
+}
+
+function drawCannaLeaf(ctx, x, y, w, h, angle) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  // 7-point cannabis leaf simplified as ellipse with notches
+  ctx.beginPath();
+  ctx.ellipse(0, 0, w, h, 0, 0, Math.PI*2);
+  ctx.fill();
+  // Center vein
+  ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(-w, 0);
+  ctx.lineTo(w, 0);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawLights(ctx, level) {
+  const lightData = [
+    {color:'#f5d742', r:6},
+    {color:'#ffe090', r:8},
+    {color:'#80d8ff', r:10},
+    {color:'#ffffff', r:12},
+  ][level];
+
+  const count = 4;
+  for (let i = 0; i < count; i++) {
+    const lx = (i + 0.5) * (CW / count);
+    // Fixture
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(lx - 20, 0, 40, 10);
+    // Glow
+    ctx.shadowColor = lightData.color;
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = lightData.color;
+    ctx.beginPath();
+    ctx.arc(lx, 5, lightData.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // Beam
+    const beamGrad = ctx.createLinearGradient(lx, 10, lx, CH);
+    beamGrad.addColorStop(0, `${lightData.color}22`);
+    beamGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = beamGrad;
+    ctx.beginPath();
+    ctx.moveTo(lx - 5, 10);
+    ctx.lineTo(lx - CW/count*0.4, CH);
+    ctx.lineTo(lx + CW/count*0.4, CH);
+    ctx.lineTo(lx + 5, 10);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+function lighten(hex, amt) { return shiftColor(hex, amt); }
+function darken(hex, amt) { return shiftColor(hex, -amt); }
+function shiftColor(hex, amt) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  const clamp = v => Math.max(0, Math.min(255, v+amt));
+  return `#${clamp(r).toString(16).padStart(2,'0')}${clamp(g).toString(16).padStart(2,'0')}${clamp(b).toString(16).padStart(2,'0')}`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  CANVAS CLICK
+// ═══════════════════════════════════════════════════════
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (CW / rect.width);
+  const my = (e.clientY - rect.top) * (CH / rect.height);
+  const col = Math.floor(mx / SW), row = Math.floor(my / SH);
+  const idx = row * COLS + col;
+  if (idx >= 0 && idx < SLOTS) {
+    const slot = GS.slots[idx];
+    if (!slot) {
+      G.plant(idx);
+    } else if (slot.daysLeft === 0) {
+      G.harvest(idx);
+    } else {
+      G.clearSlot(idx);
+    }
+  }
+});
+
+// Tooltip
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (CW / rect.width);
+  const my = (e.clientY - rect.top) * (CH / rect.height);
+  const col = Math.floor(mx / SW), row = Math.floor(my / SH);
+  const idx = row * COLS + col;
+  const tip = document.getElementById('tooltip');
+  if (idx >= 0 && idx < SLOTS) {
+    const slot = GS.slots[idx];
+    if (slot) {
+      const strain = STRAINS[slot.strainId];
+      const stages = ['Seedling','Veg','Flowering','Ripe'];
+      tip.style.display = 'block';
+      tip.style.left = (e.clientX + 14) + 'px';
+      tip.style.top = (e.clientY - 10) + 'px';
+      tip.innerHTML = `<div style="color:${strain.color}">${strain.name}</div><div style="color:#888">Stage: ${stages[slot.stage]}</div><div style="color:#888">Days left: ${slot.daysLeft}</div>${slot.daysLeft===0?'<div style="color:#4aff6e">CLICK TO HARVEST</div>':'<div style="color:#666">Right-click to remove</div>'}`;
+    } else {
+      tip.style.display = 'block';
+      tip.style.left = (e.clientX + 14) + 'px';
+      tip.style.top = (e.clientY - 10) + 'px';
+      const strain = STRAINS[GS.selectedStrain];
+      tip.innerHTML = `<div style="color:#888">Empty Slot</div><div style="color:${strain.color}">Click: Plant ${strain.name}</div>`;
+    }
+  } else {
+    tip.style.display = 'none';
+  }
+});
+canvas.addEventListener('mouseleave', () => { document.getElementById('tooltip').style.display = 'none'; });
+
+canvas.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (CW / rect.width);
+  const my = (e.clientY - rect.top) * (CH / rect.height);
+  const col = Math.floor(mx / SW), row = Math.floor(my / SH);
+  const idx = row * COLS + col;
+  if (idx >= 0 && idx < SLOTS && GS.slots[idx]) {
+    G.clearSlot(idx);
+  }
+});
+
+// ═══════════════════════════════════════════════════════
+//  UI RENDERING
+// ═══════════════════════════════════════════════════════
+function updateUI() {
+  // Header stats
+  document.getElementById('s-money').textContent = '$' + GS.money.toLocaleString();
+  document.getElementById('s-day').textContent = GS.day;
+  document.getElementById('s-rep').textContent = GS.rep;
+  document.getElementById('s-harvest').textContent = GS.totalHarvest + 'g';
+
+  // Equipment labels
+  document.getElementById('light-label').textContent = EQUIPMENT.light.levels[GS.equip.light].name;
+  document.getElementById('water-label').textContent = EQUIPMENT.water.levels[GS.equip.water].name;
+  document.getElementById('climate-label').textContent = EQUIPMENT.climate.levels[GS.equip.climate].name;
+  document.getElementById('soil-label').textContent = EQUIPMENT.soil.levels[GS.equip.soil].name;
+
+  // Strain list
+  const sl = document.getElementById('strain-list');
+  sl.innerHTML = '';
+  STRAINS.forEach(s => {
+    const row = document.createElement('div');
+    row.className = 'strain-row' + (s.id === GS.selectedStrain ? ' selected' : '') + (!s.unlocked ? ' locked' : '');
+    const tierStars = '★'.repeat(s.tier) + '☆'.repeat(4-s.tier);
+    const canGrow = GS.equip.light >= s.reqLight && GS.equip.climate >= s.reqClimate && GS.equip.soil >= s.reqSoil;
+    row.innerHTML = `
+      <div class="strain-dot" style="background:${s.dotColor}"></div>
+      <div class="strain-name" style="color:${s.unlocked ? s.color : '#666'}">${s.name}</div>
+      <div class="strain-info">${s.unlocked ? (canGrow ? `${s.growDays}d` : '🔒') : `$${s.seedCost}`}</div>
+    `;
+    if (s.unlocked && canGrow) {
+      row.onclick = () => { GS.selectedStrain = s.id; updateUI(); };
+    } else if (!s.unlocked) {
+      row.onclick = () => G.buyStrain(s.id);
+    } else {
+      row.title = `Needs better equipment`;
+    }
+    sl.appendChild(row);
+  });
+
+  // Equipment grid
+  const eg = document.getElementById('equip-grid');
+  eg.innerHTML = '';
+  ['light','water','climate','soil'].forEach(type => {
+    const cur = GS.equip[type];
+    const lvl = EQUIPMENT[type].levels[cur];
+    const next = EQUIPMENT[type].levels[cur+1];
+    const row = document.createElement('div');
+    row.className = 'equip-row';
+    const icons = {light:'💡',water:'💧',climate:'🌡',soil:'🌱'};
+    row.innerHTML = `
+      <div class="equip-name">${icons[type]} <span style="color:${lvl.color}">${lvl.name}</span></div>
+      <button class="equip-btn" ${!next||GS.money<next.cost?'disabled':''} onclick="G.buyEquip('${type}')">
+        ${next ? `⬆ $${next.cost}` : 'MAX'}
+      </button>
+    `;
+    eg.appendChild(row);
+  });
+
+  // Inventory
+  const inv = document.getElementById('inv-list');
+  inv.innerHTML = '';
+  let totalG = 0;
+  Object.entries(GS.inventory).forEach(([id, grams]) => {
+    totalG += grams;
+    const strain = STRAINS[parseInt(id)];
+    const price = GS.marketPrices[parseInt(id)];
+    const row = document.createElement('div');
+    row.className = 'inv-row';
+    row.innerHTML = `
+      <span style="color:${strain.color}">${strain.name}</span>
+      <span style="color:#888">${grams}g</span>
+      <span style="color:#ffd700">$${price}/g</span>
+      <button class="inv-sell" onclick="G.sellAll(${id})">SELL ALL</button>
+    `;
+    inv.appendChild(row);
+  });
+  document.getElementById('inv-total').textContent = totalG + 'g ($' + Object.entries(GS.inventory).reduce((s,[id,g])=>s+g*(GS.marketPrices[parseInt(id)]||0),0).toLocaleString() + ')';
+
+  // Market
+  const ml = document.getElementById('market-list');
+  ml.innerHTML = '';
+  STRAINS.filter(s=>s.unlocked).forEach(s => {
+    const d = GS.marketDemand[s.id];
+    const p = GS.marketPrices[s.id];
+    const demandColor = d > 1.1 ? '#4aff6e' : d > 0.9 ? '#f5d742' : '#ff4242';
+    const demandLabel = d > 1.1 ? '▲ HIGH' : d > 0.9 ? '■ MED' : '▼ LOW';
+    const row = document.createElement('div');
+    row.className = 'market-row';
+    row.innerHTML = `
+      <span style="color:${s.color};font-size:15px">${s.name}</span>
+      <span class="market-price">$${p}/g</span>
+      <span class="market-demand" style="color:${demandColor}">${demandLabel}</span>
+    `;
+    ml.appendChild(row);
+  });
+
+  // Seed shop
+  const shop = document.getElementById('shop-list');
+  shop.innerHTML = '';
+  STRAINS.filter(s=>!s.unlocked).forEach(s => {
+    const canAfford = GS.money >= s.seedCost;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:#0a0c08;border:1px solid #1e2418;margin-bottom:2px;';
+    row.innerHTML = `
+      <span style="color:${canAfford?s.color:'#555'};font-size:15px">${s.name}</span>
+      <span style="font-size:13px;color:#888">Tier ${s.tier}</span>
+      <button class="equip-btn" ${!canAfford?'disabled':''} onclick="G.buyStrain(${s.id})" style="font-size:13px;padding:2px 8px">$${s.seedCost}</button>
+    `;
+    shop.appendChild(row);
+  });
+  if (!STRAINS.some(s=>!s.unlocked)) {
+    shop.innerHTML = '<div style="font-size:15px;color:#4a5040;text-align:center;padding:20px">ALL STRAINS UNLOCKED 🌿</div>';
+  }
+
+  // Grow stats panel
+  const el = EQUIPMENT.light.levels[GS.equip.light];
+  const ec = EQUIPMENT.climate.levels[GS.equip.climate];
+  const es = EQUIPMENT.soil.levels[GS.equip.soil];
+  const ew = EQUIPMENT.water.levels[GS.equip.water];
+  const totalYield = el.yieldMult * ec.yieldMult * es.yieldMult * ew.yieldMult;
+  const totalPotency = el.potencyMult * ec.potencyMult * es.potencyMult * ew.potencyMult;
+  const sp = document.getElementById('stats-panel');
+  sp.innerHTML = `
+    <div>Yield Mult: <span style="color:#4aff6e">×${totalYield.toFixed(2)}</span></div>
+    <div>Potency Mult: <span style="color:#c842ff">×${totalPotency.toFixed(2)}</span></div>
+    <div>Active Slots: <span style="color:#f5d742">${GS.slots.filter(Boolean).length}/${SLOTS}</span></div>
+    <div>Ready: <span style="color:#4aff6e">${GS.slots.filter(s=>s&&s.daysLeft===0).length}</span></div>
+    <div>Total Grown: <span style="color:#ffd700">${GS.totalHarvest}g</span></div>
+    <div>Reputation: <span style="color:#c842ff">${GS.rep}/100</span></div>
+    <div style="margin-top:4px;color:#3a4030">Market updates daily</div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════
+//  LOG
+// ═══════════════════════════════════════════════════════
+function addLog(msg, type='') {
+  GS.log.unshift({msg, type});
+  if (GS.log.length > 30) GS.log.pop();
+  const logEl = document.getElementById('log');
+  logEl.innerHTML = GS.log.map(l => `<div class="log-line ${l.type}">${l.msg}</div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════════════════════
+function showModal(title, body, onConfirm) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = body.replace(/\n/g,'<br>');
+  const btns = document.getElementById('modal-btns');
+  btns.innerHTML = '';
+  const cancel = document.createElement('button');
+  cancel.className = 'modal-btn cancel';
+  cancel.textContent = 'CANCEL';
+  cancel.onclick = closeModal;
+  const confirm = document.createElement('button');
+  confirm.className = 'modal-btn primary';
+  confirm.textContent = 'CONFIRM';
+  confirm.onclick = () => { closeModal(); onConfirm(); };
+  btns.appendChild(cancel);
+  btns.appendChild(confirm);
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+});
+
+// ═══════════════════════════════════════════════════════
+//  GAME LOOP
+// ═══════════════════════════════════════════════════════
+function loop() {
+  render();
+  requestAnimationFrame(loop);
+}
+
+// ── INIT ──
+addLog("🌿 Welcome to GREEN THUMB!", "great");
+addLog("💡 Click empty pots to plant. Click ripe plants to harvest.", "info");
+addLog("📅 Press NEXT DAY to advance time and grow your plants.", "info");
+addLog("💰 Sell your harvest on the market. Prices change daily!", "");
+updateUI();
+loop();
+</script>
+</body>
+</html>
