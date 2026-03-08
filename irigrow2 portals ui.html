@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>IRIE GROW</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080b06;--panel:#0d1009;--brd:#1a2614;
+  --g:#4dff7c;--y:#f7d94a;--or:#ff8c3a;--r:#ff4040;
+  --bl:#3ab8ff;--pu:#c040ff;--gd:#ffd700;--tx:#b0c098;--mt:#334428;
+}
+*{margin:0;padding:0;box-sizing:border-box;image-rendering:pixelated;}
+body{background:var(--bg);color:var(--tx);font-family:'VT323',monospace;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden;}
+body::after{content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.05) 3px,rgba(0,0,0,.05) 4px);
+  pointer-events:none;z-index:9999;}
+
+/* ─── HEADER ─── */
+#hdr{width:1100px;max-width:100vw;display:flex;justify-content:space-between;align-items:center;
+  background:var(--panel);border:2px solid var(--brd);padding:6px 14px;margin:8px 0 5px;}
+.logo{font-size:26px;color:var(--g);text-shadow:0 0 14px var(--g);letter-spacing:2px;}
+.logo b{color:var(--y);}
+.hbar{display:flex;gap:18px;align-items:center;}
+.hs{display:flex;flex-direction:column;align-items:center;}
+.hs-l{font-size:10px;color:var(--mt);letter-spacing:2px;}
+.hs-v{font-size:20px;}
+
+/* ─── BODY ─── */
+#body{width:1100px;max-width:100vw;display:flex;gap:6px;}
+#gc{display:block;border:2px solid var(--brd);flex-shrink:0;cursor:crosshair;}
+
+/* ─── SIDE ─── */
+#side{width:270px;flex-shrink:0;display:flex;flex-direction:column;gap:5px;}
+.card{background:var(--panel);border:2px solid var(--brd);padding:9px;}
+.ct{font-size:11px;letter-spacing:3px;color:var(--mt);border-bottom:1px solid var(--brd);padding-bottom:4px;margin-bottom:7px;}
+.srow{display:flex;align-items:center;gap:5px;padding:3px 6px;background:#080b06;
+  border:1px solid var(--brd);cursor:pointer;margin-bottom:2px;font-size:14px;}
+.srow:hover{border-color:#2db84d;}.srow.sel{border-color:var(--g);background:#0b1408;}
+.srow.lk{opacity:.38;cursor:not-allowed;}
+.sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.snm{flex:1;}.sinf{font-size:11px;color:var(--mt);}
+.erow{display:flex;justify-content:space-between;align-items:center;
+  padding:3px 6px;background:#080b06;border:1px solid var(--brd);margin-bottom:2px;}
+.ebtn{font-family:'VT323',monospace;font-size:13px;background:transparent;
+  border:1px solid var(--g);color:var(--g);padding:1px 8px;cursor:pointer;}
+.ebtn:hover{background:var(--g);color:#000;}
+.ebtn:disabled{border-color:var(--mt);color:var(--mt);cursor:not-allowed;}
+.ebtn:disabled:hover{background:transparent;color:var(--mt);}
+.irow{display:flex;justify-content:space-between;align-items:center;
+  padding:3px 6px;background:#080b06;border:1px solid var(--brd);margin-bottom:2px;font-size:13px;}
+.isb{font-family:'VT323',monospace;font-size:12px;background:transparent;
+  border:1px solid var(--gd);color:var(--gd);padding:1px 6px;cursor:pointer;}
+.isb:hover{background:var(--gd);color:#000;}
+.gbtn{font-family:'VT323',monospace;font-size:17px;background:transparent;
+  border:2px solid;padding:4px 14px;cursor:pointer;letter-spacing:1px;}
+.gbtn-g{border-color:var(--g);color:var(--g);}.gbtn-g:hover{background:var(--g);color:#000;}
+.gbtn-y{border-color:var(--y);color:var(--y);}.gbtn-y:hover{background:var(--y);color:#000;}
+
+/* ─── LOG ─── */
+#log{background:var(--panel);border:2px solid var(--brd);padding:7px 11px;
+  height:72px;overflow-y:auto;font-size:13px;width:1100px;max-width:100vw;}
+.ll{line-height:1.55;}.good{color:var(--g);}.great{color:var(--gd);}
+.warn{color:var(--or);}.info{color:var(--bl);}
+
+/* ─── MODAL ─── */
+#mov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);
+  z-index:200;justify-content:center;align-items:center;}
+#mov.open{display:flex;}
+#mod{background:var(--panel);border:2px solid var(--g);padding:20px;
+  min-width:320px;max-width:440px;box-shadow:0 0 36px rgba(77,255,124,.16);}
+.mt{font-size:19px;color:var(--g);margin-bottom:10px;letter-spacing:1px;}
+.mb{font-size:14px;line-height:1.85;color:var(--tx);margin-bottom:14px;}
+.mbtns{display:flex;gap:8px;justify-content:flex-end;}
+#tip{position:fixed;background:var(--panel);border:1px solid var(--g);
+  padding:6px 10px;font-size:13px;pointer-events:none;display:none;z-index:300;}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:#080b06;}
+::-webkit-scrollbar-thumb{background:var(--brd);}
+</style>
+</head>
+<body>
+
+<div id="hdr">
+  <div class="logo">🌿 <b>IRIE</b> GROW</div>
+  <div class="hbar">
+    <div class="hs"><div class="hs-l">CASH</div><div class="hs-v" style="color:var(--gd)" id="h-money">$500</div></div>
+    <div class="hs"><div class="hs-l">DAY</div><div class="hs-v" style="color:var(--bl)" id="h-day">1</div></div>
+    <div class="hs"><div class="hs-l">REP</div><div class="hs-v" style="color:var(--pu)" id="h-rep">0</div></div>
+    <div class="hs"><div class="hs-l">STASH</div><div class="hs-v" style="color:var(--g)" id="h-stash">0g</div></div>
+    <div class="hs"><div class="hs-l">SOLD</div><div class="hs-v" style="color:var(--y)" id="h-sold">0</div></div>
+    <button class="gbtn gbtn-g" onclick="advanceDay()">⏭ NEXT DAY</button>
+  </div>
+</div>
+
+<div id="body">
+  <canvas id="gc" width="820" height="520"></canvas>
+  <div id="side">
+    <div class="card">
+      <div class="ct">STRAIN</div>
+      <div id="sl" style="max-height:172px;overflow-y:auto;"></div>
+    </div>
+    <div class="card">
+      <div class="ct">EQUIPMENT</div>
+      <div id="eq"></div>
+    </div>
+    <div class="card">
+      <div class="ct">STASH</div>
+      <div id="inv" style="max-height:110px;overflow-y:auto;"></div>
+      <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:13px;">
+        <span style="color:var(--mt)">VALUE:</span><span id="inv-val" style="color:var(--gd)">$0</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">SEED SHOP</div>
+      <div id="shop" style="max-height:140px;overflow-y:auto;"></div>
+    </div>
+    <div class="card">
+      <div class="ct">GROW STATS</div>
+      <div id="gs" style="font-size:13px;line-height:1.9;"></div>
+    </div>
+    <div style="font-size:11px;color:var(--mt);padding:4px 6px;line-height:1.6;">
+      WASD / ARROWS = move<br>
+      SPACE / E = interact<br>
+      ENTER = next day<br>
+      Walk to grow slots to plant/harvest<br>
+      Walk to SHOP COUNTER to sell
+    </div>
+  </div>
+</div>
+<div id="log"></div>
+<div id="tip"></div>
+<div id="mov"><div id="mod">
+  <div class="mt" id="mod-t"></div>
+  <div class="mb" id="mod-b"></div>
+  <div class="mbtns" id="mod-btns"></div>
+</div></div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  DATA
+// ════════════════════════════════════════════════════════
+const STRAINS=[
+  {id:0,name:'OG KUSH',    t:1,col:'#4dff7c',dot:'#2db84d',days:5, yld:[6,10], sell:8, reqL:0,reqC:0,reqS:0,unlocked:true, seed:0,   desc:'Classic starter. Forgiving.'},
+  {id:1,name:'BLUE DREAM', t:1,col:'#42b8ff',dot:'#2090d0',days:6, yld:[7,12], sell:10,reqL:0,reqC:0,reqS:0,unlocked:true, seed:0,   desc:'Sweet berry. Easy grow.'},
+  {id:2,name:'SOUR DIESEL',t:2,col:'#f7d94a',dot:'#c8a820',days:7, yld:[9,14], sell:14,reqL:1,reqC:0,reqS:0,unlocked:false,seed:300, desc:'Fuel scent. Better lights.'},
+  {id:3,name:'PURPLE HAZE',t:2,col:'#c040ff',dot:'#8020b0',days:7, yld:[8,13], sell:16,reqL:1,reqC:1,reqS:0,unlocked:false,seed:380, desc:'Purple buds. Needs climate.'},
+  {id:4,name:'WHITE WIDOW',t:2,col:'#e8e8e0',dot:'#a0a0a0',days:8, yld:[10,16],sell:18,reqL:1,reqC:0,reqS:1,unlocked:false,seed:450, desc:'Crystal coat. Premium soil.'},
+  {id:5,name:'GORILLA GLUE',t:3,col:'#c8a060',dot:'#806030',days:9, yld:[12,18],sell:24,reqL:2,reqC:1,reqS:1,unlocked:false,seed:700, desc:'Super sticky. Heavy lights.'},
+  {id:6,name:'GELATO',     t:3,col:'#ff8c3a',dot:'#c05010',days:9, yld:[11,17],sell:28,reqL:2,reqC:2,reqS:1,unlocked:false,seed:850, desc:'Dessert strain. Full climate.'},
+  {id:7,name:'WEDDING CAKE',t:3,col:'#ffb8c0',dot:'#c07080',days:10,yld:[13,20],sell:34,reqL:2,reqC:2,reqS:2,unlocked:false,seed:1100,desc:'Dense nugs. Full setup.'},
+  {id:8,name:'RUNTZ',      t:4,col:'#ff42ff',dot:'#c020c0',days:11,yld:[14,22],sell:44,reqL:3,reqC:2,reqS:2,unlocked:false,seed:1600,desc:'Rare exotic. Top lights.'},
+  {id:9,name:'COSMIC OG',  t:4,col:'#42ffff',dot:'#20c0c0',days:13,yld:[16,26],sell:60,reqL:3,reqC:3,reqS:3,unlocked:false,seed:3000,desc:'Legendary. Max everything.'},
+];
+
+const EQ={
+  light:{name:'LIGHTING',icon:'💡',levels:[
+    {name:'Basic Bulb',  ym:1.0,cost:0,   col:'#f5e060'},
+    {name:'HID Lamp',    ym:1.25,cost:550, col:'#ffe090'},
+    {name:'LED Panel',   ym:1.55,cost:1200,col:'#80d8ff'},
+    {name:'Full Spectrum',ym:1.9,cost:2800,col:'#ffffff'},
+  ]},
+  climate:{name:'CLIMATE',icon:'🌡',levels:[
+    {name:'No AC',   ym:1.0, cost:0,   col:'#888'},
+    {name:'Fan',     ym:1.12,cost:420, col:'#80c8ff'},
+    {name:'Mini AC', ym:1.28,cost:1000,col:'#40a8ff'},
+    {name:'Full HVAC',ym:1.5,cost:2400,col:'#20e0ff'},
+  ]},
+  soil:{name:'SOIL',icon:'🌱',levels:[
+    {name:'Basic Soil', ym:1.0, cost:0,   col:'#806040'},
+    {name:'Premium Mix',ym:1.18,cost:480, col:'#604020'},
+    {name:'Coco Coir',  ym:1.42,cost:1000,col:'#a07040'},
+    {name:'Aeroponics', ym:1.75,cost:2200,col:'#60c8a0'},
+  ]},
+  water:{name:'WATERING',icon:'💧',levels:[
+    {name:'Hand Water', ym:1.0, cost:0,  col:'#4080c0'},
+    {name:'Drip System',ym:1.14,cost:280,col:'#4090e0'},
+    {name:'Auto Drip',  ym:1.32,cost:800,col:'#20b8ff'},
+    {name:'Hydro',      ym:1.65,cost:1900,col:'#00e8ff'},
+  ]},
+};
+
+// ════════════════════════════════════════════════════════
+//  WORLD LAYOUT  (tile-based, 2 rooms side by side)
+//  Grow room: tiles 0..40 x (y 0..32) in tile space
+//  Shop room: tiles 42..82 x same
+//  Door connects them at x=40/42 centre row
+// ════════════════════════════════════════════════════════
+const TS=20; // tile size pixels
+// World pixel size
+const WORLD_W=84*TS, WORLD_H=26*TS; // 1680 x 520
+// Canvas size
+const CW=820, CH=520;
+// Camera
+let camX=0;
+
+// Tile ids: 0=floor 1=wall 2=grow_slot 3=counter_front 4=door 5=shelf 6=counter_side
+// We won't use a tilemap — we'll just define zones by coordinate bounds
+
+// GROW SLOTS: 4x3 grid inside grow room
+// Grow room world x: 2..41 tiles, y: 4..25 tiles
+const GROW_ROOM={x0:0,x1:41*TS,y0:0,y1:WORLD_H};
+const SHOP_ROOM={x0:43*TS,x1:83*TS,y0:0,y1:WORLD_H};
+const DOOR_X=41*TS; // door passage x (spans 41-43)
+
+// SLOTS positioned in grow room
+const SLOT_ROWS=3, SLOT_COLS=4;
+const SLOT_MARGIN_X=6*TS, SLOT_MARGIN_Y=5*TS;
+const SLOT_SPACING_X=8*TS, SLOT_SPACING_Y=6*TS;
+
+function slotWorldPos(idx){
+  const col=idx%SLOT_COLS, row=Math.floor(idx/SLOT_COLS);
+  return {
+    x: SLOT_MARGIN_X + col*SLOT_SPACING_X,
+    y: SLOT_MARGIN_Y + row*SLOT_SPACING_Y,
+  };
+}
+
+// COUNTER: in shop room at fixed position
+const COUNTER={x:49*TS, y:8*TS, w:14*TS, h:3*TS};
+// Counter front (where rasta stands to sell)
+const COUNTER_STAND={x:49*TS, y:12*TS, w:14*TS, h:2*TS};
+
+// ════════════════════════════════════════════════════════
+//  GAME STATE
+// ════════════════════════════════════════════════════════
+const GS={
+  money:500, day:1, rep:0, totalG:0, soldCount:0,
+  selStrain:0,
+  equip:{light:0,climate:0,soil:0,water:0},
+  slots:Array(SLOT_ROWS*SLOT_COLS).fill(null),
+  inv:{},
+  customers:[],
+  nextCustId:0,
+};
+
+// ════════════════════════════════════════════════════════
+//  PLAYER
+// ════════════════════════════════════════════════════════
+const P={
+  x:10*TS, y:13*TS, // world coords
+  vx:0, vy:0,
+  speed:2.4,
+  dir:2, animT:0,
+  interactCooldown:0,
+};
+
+// Input
+const KEYS={};
+document.addEventListener('keydown',e=>{
+  KEYS[e.code]=true;
+  if(e.code==='Space'||e.code==='KeyE') tryInteract();
+  if(e.code==='Enter') advanceDay();
+  if(e.code==='Space') e.preventDefault();
+});
+document.addEventListener('keyup',e=>KEYS[e.code]=false);
+
+// ════════════════════════════════════════════════════════
+//  CUSTOMER NPCS
+// ════════════════════════════════════════════════════════
+const CUST_NAMES=['Ziggy','Marley','Ras','Nesta','Bunny','Toots','Iya','Jah','Fyah','Ting','Duke','Sista A'];
+const CUST_COLORS=['#ff8888','#88ccff','#ffcc66','#cc88ff','#88ffcc','#ffaa88'];
+let custQueueY=[];
+// Queue positions in front of counter
+function counterQueuePos(i){ return {x:55*TS+i*3.5*TS, y:15.5*TS}; }
+
+function spawnCustomer(){
+  if(GS.customers.length>=5) return;
+  const unlocked=STRAINS.filter(s=>s.unlocked);
+  if(!unlocked.length) return;
+  const strain=unlocked[Math.floor(Math.random()*unlocked.length)];
+  const grams=1+Math.floor(Math.random()*6);
+  const qi=GS.customers.length;
+  const qpos=counterQueuePos(qi);
+  GS.customers.push({
+    id:GS.nextCustId++,
+    name:CUST_NAMES[Math.floor(Math.random()*CUST_NAMES.length)],
+    strainId:strain.id,
+    grams,
+    patience:8+Math.floor(Math.random()*6), // days
+    col:CUST_COLORS[GS.nextCustId%CUST_COLORS.length],
+    // Walk in from right edge
+    x:83*TS, y:qpos.y,
+    tx:qpos.x, ty:qpos.y,
+    queueIdx:qi,
+    served:false,
+    angry:false,
+  });
+}
+
+function updateCustomers(){
+  GS.customers.forEach(c=>{
+    if(c.served) return;
+    const dx=c.tx-c.x, dy=c.ty-c.y;
+    const d=Math.sqrt(dx*dx+dy*dy);
+    if(d>1.5){ c.x+=dx/d*1.6; c.y+=dy/d*1.6; }
+    else { c.x=c.tx; c.y=c.ty; }
+  });
+}
+
+// ════════════════════════════════════════════════════════
+//  CANVAS & CAMERA
+// ════════════════════════════════════════════════════════
+const canvas=document.getElementById('gc');
+const ctx=canvas.getContext('2d');
+canvas.width=CW; canvas.height=CH;
+
+function updateCamera(){
+  // Camera follows player, clamp to world
+  camX=Math.round(P.x - CW/2);
+  camX=Math.max(0, Math.min(WORLD_W-CW, camX));
+}
+
+// ════════════════════════════════════════════════════════
+//  COLLISION
+// ════════════════════════════════════════════════════════
+const PW=10, PH=14; // player hitbox
+
+function isBlocked(wx,wy){
+  // World bounds
+  if(wx<2*TS||wy<2*TS||wx>WORLD_W-2*TS-PW||wy>WORLD_H-2*TS-PH) return true;
+  // Wall between rooms (except door gap)
+  if(wx+PW>40.5*TS && wx<43*TS){
+    if(wy+PH<11*TS || wy>15*TS) return true; // door gap at y 11-15 tiles
+  }
+  // Counter solid top
+  if(wx+PW>COUNTER.x && wx<COUNTER.x+COUNTER.w &&
+     wy+PH>COUNTER.y && wy<COUNTER.y+COUNTER.h) return true;
+  // Shelf on left wall of shop
+  if(wx+PW>44*TS && wx<46*TS &&
+     wy+PH>5*TS   && wy<12*TS) return true;
+  return false;
+}
+
+// ════════════════════════════════════════════════════════
+//  UPDATE PLAYER
+// ════════════════════════════════════════════════════════
+function updatePlayer(){
+  if(P.interactCooldown>0) P.interactCooldown--;
+  let dx=0, dy=0;
+  if(KEYS['ArrowLeft']||KEYS['KeyA']) dx=-1;
+  if(KEYS['ArrowRight']||KEYS['KeyD']) dx=1;
+  if(KEYS['ArrowUp']||KEYS['KeyW']) dy=-1;
+  if(KEYS['ArrowDown']||KEYS['KeyS']) dy=1;
+
+  if(dx!==0&&dy!==0){dx*=0.707;dy*=0.707;}
+
+  const nx=P.x+dx*P.speed, ny=P.y+dy*P.speed;
+  if(dx!==0&&!isBlocked(nx,P.y)) P.x=nx; else dx=0;
+  if(dy!==0&&!isBlocked(P.x,ny)) P.y=ny; else dy=0;
+
+  const moving=dx!==0||dy!==0;
+  if(moving){
+    P.animT++;
+    if(Math.abs(dx)>Math.abs(dy)) P.dir=dx>0?1:3;
+    else P.dir=dy>0?2:0;
+  }
+
+  updateCamera();
+}
+
+// ════════════════════════════════════════════════════════
+//  INTERACTION
+// ════════════════════════════════════════════════════════
+function tryInteract(){
+  if(P.interactCooldown>0) return;
+  P.interactCooldown=20;
+
+  const px=P.x+PW/2, py=P.y+PH/2;
+  const reach=32;
+
+  // Check grow slots
+  for(let i=0;i<SLOT_ROWS*SLOT_COLS;i++){
+    const sp=slotWorldPos(i);
+    const scx=sp.x+TS*1.5, scy=sp.y+TS*1.5;
+    if(Math.abs(px-scx)<reach+TS&&Math.abs(py-scy)<reach+TS){
+      interactSlot(i); return;
+    }
+  }
+
+  // Check counter (sell)
+  if(px>COUNTER.x-reach && px<COUNTER.x+COUNTER.w+reach &&
+     py>COUNTER.y-reach && py<COUNTER.y+COUNTER.h+50){
+    tryServeNext(); return;
+  }
+}
+
+function interactSlot(idx){
+  const slot=GS.slots[idx];
+  if(!slot){
+    const s=STRAINS[GS.selStrain];
+    if(!s.unlocked){addLog('🔒 Buy this strain first!','warn');return;}
+    if(GS.equip.light<s.reqL){addLog(`💡 Need ${EQ.light.levels[s.reqL].name}`,'warn');return;}
+    if(GS.equip.climate<s.reqC){addLog(`🌡 Need ${EQ.climate.levels[s.reqC].name}`,'warn');return;}
+    if(GS.equip.soil<s.reqS){addLog(`🌱 Need ${EQ.soil.levels[s.reqS].name}`,'warn');return;}
+    GS.slots[idx]={strainId:GS.selStrain,daysLeft:s.days,totalDays:s.days,stage:0};
+    addLog(`🌱 Planted ${s.name}`,'good');
+  } else if(slot.daysLeft===0){
+    doHarvest(idx);
+  } else {
+    addLog(`🌿 ${STRAINS[slot.strainId].name} — ${slot.daysLeft}d left`,'info');
+  }
+  updateUI();
+}
+
+function doHarvest(idx){
+  const slot=GS.slots[idx];
+  const s=STRAINS[slot.strainId];
+  const el=EQ.light.levels[GS.equip.light];
+  const ec=EQ.climate.levels[GS.equip.climate];
+  const es=EQ.soil.levels[GS.equip.soil];
+  const ew=EQ.water.levels[GS.equip.water];
+  const mult=el.ym*ec.ym*es.ym*ew.ym;
+  const base=s.yld[0]+Math.random()*(s.yld[1]-s.yld[0]);
+  const grams=Math.round(base*mult);
+  GS.inv[slot.strainId]=(GS.inv[slot.strainId]||0)+grams;
+  GS.totalG+=grams;
+  GS.slots[idx]=null;
+  GS.rep=Math.min(100,GS.rep+1);
+  addLog(`✂ Harvested ${grams}g of ${s.name}!`,'great');
+  updateUI();
+}
+
+function tryServeNext(){
+  const atCounter=GS.customers.find(c=>!c.served && Math.abs(c.x-(c.tx))<8);
+  if(!atCounter){addLog('No customers at counter yet!','info');return;}
+  const c=atCounter;
+  const have=GS.inv[c.strainId]||0;
+  if(have<c.grams){
+    addLog(`📦 Need ${c.grams}g ${STRAINS[c.strainId].name} but only have ${have}g`,'warn');
+    return;
+  }
+  const pricePerG=STRAINS[c.strainId].sell + Math.floor(GS.rep*0.08);
+  const total=c.grams*pricePerG;
+  GS.inv[c.strainId]=have-c.grams;
+  if(GS.inv[c.strainId]<=0) delete GS.inv[c.strainId];
+  GS.money+=total;
+  GS.rep=Math.min(100,GS.rep+Math.ceil(c.grams/4));
+  GS.soldCount++;
+  c.served=true;
+  addLog(`💰 Served ${c.name}: ${c.grams}g → $${total}`,'great');
+  // Remove from list + requeue remaining
+  setTimeout(()=>{
+    GS.customers=GS.customers.filter(x=>!x.served);
+    GS.customers.forEach((c,i)=>{
+      c.queueIdx=i;
+      const qp=counterQueuePos(i);
+      c.tx=qp.x; c.ty=qp.y;
+    });
+    updateUI();
+  },600);
+  updateUI();
+}
+
+// ════════════════════════════════════════════════════════
+//  DAY ADVANCE
+// ════════════════════════════════════════════════════════
+function advanceDay(){
+  GS.day++;
+  let ready=0;
+  GS.slots.forEach((s,i)=>{
+    if(!s) return;
+    s.daysLeft=Math.max(0,s.daysLeft-1);
+    const p=1-s.daysLeft/s.totalDays;
+    s.stage=p<0.25?0:p<0.5?1:p<0.85?2:3;
+    if(s.daysLeft===0) ready++;
+  });
+  // Age customers
+  GS.customers=GS.customers.filter(c=>{
+    if(c.served) return false;
+    c.patience--;
+    if(c.patience<=0){
+      addLog(`😤 ${c.name} left without buying!`,'warn');
+      GS.rep=Math.max(0,GS.rep-2);
+      return false;
+    }
+    c.angry=c.patience<=2;
+    return true;
+  });
+  // Requeue positions
+  GS.customers.forEach((c,i)=>{
+    c.queueIdx=i;
+    const qp=counterQueuePos(i);
+    c.tx=qp.x; c.ty=qp.y;
+  });
+  // Spawn
+  const toSpawn=1+Math.floor(Math.random()*3);
+  for(let i=0;i<toSpawn;i++) spawnCustomer();
+  if(ready>0) addLog(`🌿 ${ready} plant(s) ready!`,'great');
+  addLog(`📅 Day ${GS.day}. New customers arrived.`,'info');
+  updateUI();
+}
+
+// ════════════════════════════════════════════════════════
+//  DRAWING
+// ════════════════════════════════════════════════════════
+let frame=0;
+
+function draw(){
+  frame++;
+  ctx.fillStyle='#080b06';
+  ctx.fillRect(0,0,CW,CH);
+
+  ctx.save();
+  ctx.translate(-camX,0);
+
+  drawGrowRoom();
+  drawWall();
+  drawShopRoom();
+  drawPlants();
+  drawCustomers();
+  drawPlayer();
+
+  ctx.restore();
+
+  // HUD overlay
+  drawHUD();
+}
+
+// ─── GROW ROOM ───
+function drawGrowRoom(){
+  const x0=0, x1=41*TS;
+  // Floor tiles
+  for(let ty=0;ty<CH;ty+=TS)
+    for(let tx=x0;tx<x1;tx+=TS){
+      ctx.fillStyle=((tx/TS+ty/TS)%2===0)?'#0c100a':'#0e130b';
+      ctx.fillRect(tx,ty,TS,TS);
+    }
+  // Back wall
+  ctx.fillStyle='#111a0d';
+  ctx.fillRect(x0,0,x1-x0,TS*2);
+  // Baseboard
+  ctx.fillStyle='#1e2a18';
+  ctx.fillRect(x0,TS*1.9,x1-x0,TS*0.2);
+
+  // Room label sign
+  drawSign(ctx, 6*TS, TS*0.3, 10*TS, TS*1.3, '🌿 GROW ROOM', '#4dff7c');
+
+  // Light fixtures on ceiling
+  drawLightRigs(x0+4*TS, x1-4*TS, 4);
+
+  // Floor drain decorations
+  ctx.strokeStyle='#151e10'; ctx.lineWidth=1;
+  for(let tx=TS;tx<x1-TS;tx+=4*TS){
+    ctx.strokeRect(tx+TS*0.3,TS*2.5,TS*0.4,TS*0.4);
+  }
+}
+
+// ─── DIVIDING WALL ───
+function drawWall(){
+  const wx=41*TS, wy=0, ww=2*TS, wh=CH;
+  const doorY=11*TS, doorH=4*TS;
+
+  // Wall top
+  ctx.fillStyle='#1a1e14';
+  ctx.fillRect(wx,wy,ww,doorY);
+  // Wall bottom
+  ctx.fillStyle='#1a1e14';
+  ctx.fillRect(wx,doorY+doorH,ww,wh-doorY-doorH);
+  // Door frame
+  ctx.fillStyle='#3a2c18';
+  ctx.fillRect(wx-TS*0.15,doorY-TS*0.2,ww+TS*0.3,doorH+TS*0.2);
+  ctx.fillStyle='#2a1e0c';
+  ctx.fillRect(wx+TS*0.1,doorY,ww-TS*0.2,doorH);
+  // Door light stripe
+  ctx.fillStyle='rgba(255,220,120,0.08)';
+  ctx.fillRect(wx+TS*0.1,doorY,ww-TS*0.2,doorH);
+  // Doorknob
+  ctx.fillStyle='#c8a830';
+  ctx.beginPath(); ctx.arc(wx+ww*0.8,doorY+doorH*0.5,3,0,Math.PI*2); ctx.fill();
+}
+
+// ─── SHOP ROOM ───
+function drawShopRoom(){
+  const x0=43*TS, x1=83*TS;
+  // Floor — warm wood tone
+  for(let ty=0;ty<CH;ty+=TS)
+    for(let tx=x0;tx<x1;tx+=TS){
+      const shade=((tx/TS+ty/TS)%2===0)?'#120e08':'#150f09';
+      ctx.fillStyle=shade;
+      ctx.fillRect(tx,ty,TS,TS);
+    }
+  // Wood plank lines
+  ctx.strokeStyle='#1a1208'; ctx.lineWidth=1;
+  for(let ty=TS*2;ty<CH;ty+=TS*2){
+    ctx.beginPath(); ctx.moveTo(x0,ty); ctx.lineTo(x1,ty); ctx.stroke();
+  }
+  // Back wall
+  ctx.fillStyle='#16120a';
+  ctx.fillRect(x0,0,x1-x0,TS*2.2);
+  ctx.fillStyle='#201a10';
+  ctx.fillRect(x0,TS*2.0,x1-x0,TS*0.25);
+
+  // Shop sign
+  drawSign(ctx, x0+2*TS, TS*0.2, 16*TS, TS*1.4, '🏪 IRIE DISPENSARY', '#f7d94a');
+
+  // Shelves on left wall
+  drawShelves(x0);
+
+  // Decorations
+  drawShopDecor(x0);
+
+  // Counter
+  drawCounter();
+}
+
+function drawSign(ctx,x,y,w,h,text,col){
+  ctx.fillStyle='rgba(0,0,0,0.55)';
+  roundRect(ctx,x,y,w,h,4); ctx.fill();
+  ctx.strokeStyle=col; ctx.lineWidth=1.5;
+  roundRect(ctx,x,y,w,h,4); ctx.stroke();
+  ctx.fillStyle=col; ctx.font=`${Math.floor(h*0.55)}px VT323`;
+  ctx.textAlign='center';
+  ctx.fillText(text,x+w/2,y+h*0.72);
+}
+
+function drawShelves(x0){
+  // Left wall shelf unit
+  const sx=x0+TS*0.5, sy=TS*3, sw=TS*2.5, rows=3;
+  // Unit back
+  ctx.fillStyle='#2a1e0e';
+  ctx.fillRect(sx,sy,sw,TS*rows*1.8+TS*0.4);
+  // Shelves
+  for(let r=0;r<rows;r++){
+    const shy=sy+r*TS*1.8+TS*0.3;
+    ctx.fillStyle='#3a2c18';
+    ctx.fillRect(sx,shy,sw,TS*0.25);
+    ctx.fillStyle='#221608';
+    ctx.fillRect(sx,shy+TS*0.25,sw,TS*1.3);
+    // Jars on shelf
+    drawJarRow(sx+TS*0.2,shy-TS*0.6,sw-TS*0.4,3,r);
+  }
+}
+
+function drawJarRow(x,y,w,count,row){
+  for(let i=0;i<count;i++){
+    const jx=x+i*(w/count)+w/count*0.15;
+    const jy=y;
+    const jw=TS*0.55, jh=TS*0.65;
+    const strainIdx=row*count+i;
+    const scol=strainIdx<STRAINS.length?STRAINS[strainIdx].col:'#4dff7c';
+    // Jar body
+    ctx.fillStyle='rgba(160,220,180,0.12)';
+    roundRect(ctx,jx,jy,jw,jh,2); ctx.fill();
+    ctx.strokeStyle='rgba(160,220,180,0.35)'; ctx.lineWidth=1;
+    roundRect(ctx,jx,jy,jw,jh,2); ctx.stroke();
+    // Lid
+    ctx.fillStyle='#3a2810';
+    ctx.fillRect(jx-1,jy-TS*0.12,jw+2,TS*0.14);
+    // Bud inside
+    const have=(GS.inv[strainIdx]||0)>0;
+    ctx.fillStyle=have?scol:'#2a2a2a';
+    ctx.beginPath(); ctx.arc(jx+jw/2,jy+jh*0.55,jw*0.28,0,Math.PI*2); ctx.fill();
+    if(have){
+      ctx.fillStyle='rgba(255,255,255,0.25)';
+      ctx.beginPath(); ctx.arc(jx+jw*0.35,jy+jh*0.4,jw*0.1,0,Math.PI*2); ctx.fill();
+    }
+  }
+}
+
+function drawShopDecor(x0){
+  // Neon-style sign
+  const sx=x0+TS*6, sy=TS*0.3;
+  ctx.strokeStyle='rgba(77,255,124,0.5)'; ctx.lineWidth=2;
+  ctx.shadowColor='#4dff7c'; ctx.shadowBlur=8;
+  ctx.strokeRect(sx,sy,TS*5,TS*1.4);
+  ctx.shadowBlur=0;
+
+  // Bob Marley-ish poster (abstract)
+  drawPoster(ctx,x0+TS*36,TS*0.25,TS*3,TS*1.7,'#c040ff','VIBES');
+  drawPoster(ctx,x0+TS*30,TS*0.25,TS*3,TS*1.7,'#ff8c3a','ONE ♪');
+  drawPoster(ctx,x0+TS*24,TS*0.25,TS*3,TS*1.7,'#f7d94a','IRIE ★');
+
+  // Rug on floor
+  ctx.fillStyle='rgba(120,60,20,0.18)';
+  ctx.beginPath(); ctx.ellipse(x0+TS*20,TS*17,TS*8,TS*4,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='rgba(180,100,40,0.25)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.ellipse(x0+TS*20,TS*17,TS*7.5,TS*3.5,0,0,Math.PI*2); ctx.stroke();
+
+  // Plants in pots (decorative)
+  drawDecoPot(ctx,x0+TS*38,TS*15);
+  drawDecoPot(ctx,x0+TS*15,TS*15);
+}
+
+function drawPoster(ctx,x,y,w,h,col,text){
+  ctx.fillStyle='#1a1208'; ctx.fillRect(x,y,w,h);
+  ctx.fillStyle=col; ctx.strokeStyle=col; ctx.lineWidth=1;
+  ctx.strokeRect(x+2,y+2,w-4,h-4);
+  ctx.font=`${Math.floor(h*0.36)}px VT323`; ctx.textAlign='center';
+  ctx.fillText(text,x+w/2,y+h*0.65);
+}
+
+function drawDecoPot(ctx,x,y){
+  const pw=TS*0.9, ph=TS*0.8;
+  ctx.fillStyle='#5a3818';
+  ctx.beginPath();
+  ctx.moveTo(x-pw*0.55,y);ctx.lineTo(x+pw*0.55,y);
+  ctx.lineTo(x+pw*0.42,y+ph);ctx.lineTo(x-pw*0.42,y+ph);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#1e1008';
+  ctx.beginPath(); ctx.ellipse(x,y+4,pw*0.48,pw*0.16,0,0,Math.PI*2); ctx.fill();
+  // Small plant
+  ctx.strokeStyle='#3a6020'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(x,y-2); ctx.lineTo(x,y-TS*0.8); ctx.stroke();
+  for(let i=0;i<3;i++){
+    const a=-Math.PI*0.5+(i-1)*0.6;
+    ctx.strokeStyle='#4dff7c'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(x,y-TS*(0.2+i*0.2));
+    ctx.lineTo(x+Math.cos(a)*TS*0.35,y-TS*(0.2+i*0.2)+Math.sin(a)*TS*0.25);
+    ctx.stroke();
+  }
+}
+
+// ─── COUNTER ───
+function drawCounter(){
+  const {x,y,w,h}=COUNTER;
+  const depth=TS*0.6;
+
+  // Top surface (slightly angled — 3D look)
+  const grad=ctx.createLinearGradient(x,y-depth,x,y);
+  grad.addColorStop(0,'#4a3018'); grad.addColorStop(1,'#3a2410');
+  ctx.fillStyle=grad;
+  ctx.beginPath();
+  ctx.moveTo(x,y-depth);ctx.lineTo(x+w,y-depth);
+  ctx.lineTo(x+w+TS*0.3,y-depth-TS*0.2);ctx.lineTo(x+TS*0.3,y-depth-TS*0.2);
+  ctx.closePath(); ctx.fill();
+
+  // Front face
+  const fgrad=ctx.createLinearGradient(x,y-depth,x,y+h);
+  fgrad.addColorStop(0,'#3a2814'); fgrad.addColorStop(1,'#221808');
+  ctx.fillStyle=fgrad;
+  ctx.fillRect(x,y-depth,w,h+depth);
+
+  // Wood grain
+  ctx.strokeStyle='rgba(0,0,0,0.2)'; ctx.lineWidth=1;
+  for(let i=0;i<6;i++){
+    ctx.beginPath();
+    ctx.moveTo(x,y-depth+i*(h+depth)/6);
+    ctx.lineTo(x+w,y-depth+i*(h+depth)/6);
+    ctx.stroke();
+  }
+
+  // Counter top highlight
+  ctx.fillStyle='rgba(255,180,80,0.12)';
+  ctx.fillRect(x,y-depth,w,TS*0.15);
+
+  // Glass display on counter
+  ctx.fillStyle='rgba(160,220,240,0.07)';
+  ctx.fillRect(x+TS*0.4,y-depth-TS*1.2,w-TS*0.8,TS*1.0);
+  ctx.strokeStyle='rgba(160,220,240,0.28)'; ctx.lineWidth=1;
+  ctx.strokeRect(x+TS*0.4,y-depth-TS*1.2,w-TS*0.8,TS*1.0);
+  // Items in display case
+  let di=0;
+  Object.entries(GS.inv).forEach(([id,g])=>{
+    if(!g||di>6) return;
+    const s=STRAINS[parseInt(id)];
+    const dx=x+TS*(0.7+di*1.8), dy=y-depth-TS*0.85;
+    drawMiniBud(ctx,dx,dy,TS*0.35,s.col);
+    di++;
+  });
+
+  // Counter sign
+  ctx.fillStyle='#f7d94a'; ctx.font='14px VT323'; ctx.textAlign='center';
+  ctx.fillText('[ DISPENSARY COUNTER ]',x+w/2,y-depth+h*0.55+depth*0.4);
+
+  // "E to serve" hint
+  const playerNear = Math.abs(P.x+PW/2-(x+w/2))<w*0.8 && Math.abs(P.y+PH/2-(y+h/2))<TS*4;
+  if(playerNear && GS.customers.some(c=>!c.served)){
+    ctx.fillStyle='rgba(77,255,124,0.9)'; ctx.font='13px VT323'; ctx.textAlign='center';
+    const pulse=0.6+Math.sin(frame*0.12)*0.4;
+    ctx.globalAlpha=pulse;
+    ctx.fillText('[ E ] SERVE CUSTOMER',x+w/2,y-depth-TS*1.5);
+    ctx.globalAlpha=1;
+  }
+}
+
+// ─── LIGHT RIGS ───
+function drawLightRigs(x0,x1,count){
+  const ll=GS.equip.light;
+  const ldata=[
+    {col:'#f5e060',glow:'#f5e06044',r:5},
+    {col:'#ffe090',glow:'#ffe09055',r:7},
+    {col:'#80d8ff',glow:'#80d8ff66',r:9},
+    {col:'#ffffff', glow:'#ffffff88',r:11},
+  ][ll];
+  for(let i=0;i<count;i++){
+    const lx=x0+(x1-x0)*((i+0.5)/count);
+    ctx.fillStyle='#1a1a18';
+    ctx.fillRect(lx-TS*0.8,0,TS*1.6,TS*0.7);
+    // Cable
+    ctx.strokeStyle='#333'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(lx-TS*0.3,TS*0.7); ctx.lineTo(lx-TS*0.4,TS*0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(lx+TS*0.3,TS*0.7); ctx.lineTo(lx+TS*0.4,TS*0); ctx.stroke();
+    // Glow - no shadowBlur (expensive), use filled circle with lighter color
+    ctx.fillStyle=ldata.col;
+    ctx.beginPath(); ctx.arc(lx,TS*0.6,ldata.r,0,Math.PI*2); ctx.fill();
+    // Inner bright spot
+    ctx.fillStyle='rgba(255,255,255,0.6)';
+    ctx.beginPath(); ctx.arc(lx,TS*0.6,ldata.r*0.4,0,Math.PI*2); ctx.fill();
+    // Beam
+    const bg=ctx.createLinearGradient(lx,TS*0.6,lx,CH);
+    bg.addColorStop(0,ldata.glow); bg.addColorStop(1,'transparent');
+    ctx.fillStyle=bg;
+    ctx.beginPath();
+    ctx.moveTo(lx-TS*0.4,TS*0.6);
+    ctx.lineTo(lx-(x1-x0)/(count*1.4),CH);
+    ctx.lineTo(lx+(x1-x0)/(count*1.4),CH);
+    ctx.lineTo(lx+TS*0.4,TS*0.6);
+    ctx.closePath(); ctx.fill();
+  }
+}
+
+// ─── PLANTS ───
+function drawPlants(){
+  for(let i=0;i<SLOT_ROWS*SLOT_COLS;i++){
+    const sp=slotWorldPos(i);
+    drawPlantSlot(ctx,i,sp.x,sp.y);
+  }
+}
+
+function drawPlantSlot(ctx,idx,wx,wy){
+  const slot=GS.slots[idx];
+  const sw=TS*3, sh=TS*3;
+  const cx=wx+sw/2, cy=wy+sh/2;
+
+  // Platform 3D
+  const pw=sw*0.88, ph=sh*0.26;
+  const pxo=cx-pw/2, pyo=cy+sh*0.22;
+  // Top
+  ctx.fillStyle='#2a1e0e';
+  ctx.beginPath();
+  ctx.moveTo(pxo,pyo); ctx.lineTo(pxo+pw,pyo);
+  ctx.lineTo(pxo+pw+TS*0.3,pyo-TS*0.22); ctx.lineTo(pxo+TS*0.3,pyo-TS*0.22);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#3a2e1e'; ctx.lineWidth=1; ctx.stroke();
+  // Front
+  ctx.fillStyle='#1e1408';
+  ctx.fillRect(pxo,pyo,pw,ph);
+
+  // Pot
+  drawPot3D(ctx,cx,cy+sh*0.08,sw*0.3,sh*0.24);
+
+  if(!slot){
+    ctx.fillStyle='#1e2418'; ctx.font=`${TS*0.7}px VT323`; ctx.textAlign='center';
+    ctx.fillText('+',cx,cy+TS*0.15);
+    // "E near" hint
+    const px=P.x+PW/2, py=P.y+PH/2;
+    if(Math.abs(px-cx)<TS*2.5&&Math.abs(py-cy)<TS*2.5){
+      ctx.fillStyle='rgba(77,255,124,0.8)'; ctx.font='11px VT323'; ctx.textAlign='center';
+      const pulse=0.5+Math.sin(frame*0.14)*0.5;
+      ctx.globalAlpha=pulse;
+      ctx.fillText('[E] PLANT',cx,wy+TS*0.4);
+      ctx.globalAlpha=1;
+    }
+    return;
+  }
+
+  const s=STRAINS[slot.strainId];
+  const prog=1-slot.daysLeft/slot.totalDays;
+  const wA=Math.sin(frame*0.04+idx*1.3)*1.8;
+  const wB=Math.cos(frame*0.038+idx*0.9)*1.3;
+
+  if(slot.stage===0) drawSeedling3D(ctx,cx,cy+sh*0.04,sh,s.col,wA);
+  else if(slot.stage===1) drawVeg3D(ctx,cx,cy+sh*0.04,sh,s.col,wA,wB,prog);
+  else if(slot.stage===2) drawFlowering3D(ctx,cx,cy+sh*0.04,sh,s.col,wA,wB,prog);
+  else drawRipe3D(ctx,cx,cy+sh*0.04,sh,s.col,wA,wB);
+
+  // Progress bar
+  const bx=wx+4, by=wy+sh-8, bw=sw-8;
+  ctx.fillStyle='#0a0c08'; ctx.fillRect(bx,by,bw,6);
+  ctx.fillStyle=slot.daysLeft===0?'#4dff7c':prog<0.5?'#f7d94a':'#2db84d';
+  ctx.fillRect(bx,by,bw*Math.min(1,prog),6);
+  if(slot.daysLeft===0){
+    const pulse=0.4+Math.sin(frame*0.1)*0.4;
+    ctx.strokeStyle=`rgba(77,255,124,${pulse*0.9})`; ctx.lineWidth=2;
+    ctx.fillRect(bx,by,bw,6);
+    // "E to harvest" hint
+    const px=P.x+PW/2, py=P.y+PH/2;
+    if(Math.abs(px-cx)<TS*2.5&&Math.abs(py-cy)<TS*2.5){
+      ctx.fillStyle='rgba(77,255,124,0.9)'; ctx.font='11px VT323'; ctx.textAlign='center';
+      const pulse=0.5+Math.sin(frame*0.18)*0.5;
+      ctx.globalAlpha=pulse;
+      ctx.fillText('[E] HARVEST',cx,wy+TS*0.4);
+      ctx.globalAlpha=1;
+    }
+  }
+  ctx.fillStyle=slot.daysLeft===0?'#4dff7c':'#445538';
+  ctx.font='11px VT323'; ctx.textAlign='center';
+  ctx.fillText(slot.daysLeft===0?'READY':slot.daysLeft+'d',cx,by-2);
+}
+
+// ─── CUSTOMERS ───
+function drawCustomers(){
+  GS.customers.forEach(c=>{
+    if(c.served) return;
+    drawNPCCustomer(ctx,c);
+  });
+}
+
+function drawNPCCustomer(ctx,c){
+  ctx.save();
+  ctx.translate(Math.round(c.x),Math.round(c.y));
+
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(0,16,9,4,0,0,Math.PI*2); ctx.fill();
+
+  // Legs
+  ctx.fillStyle=c.angry?'#8b0000':'#1a3a10';
+  ctx.fillRect(-5,7,4,10); ctx.fillRect(1,7,4,10);
+  // Shoes
+  ctx.fillStyle='#2a1808';
+  ctx.fillRect(-6,16,5,4); ctx.fillRect(1,16,5,4);
+  // Body
+  ctx.fillStyle=c.col;
+  ctx.fillRect(-7,-2,14,10);
+  // Head
+  ctx.fillStyle='#c8a070';
+  ctx.beginPath(); ctx.ellipse(0,-9,7,7,0,0,Math.PI*2); ctx.fill();
+  // Hair
+  ctx.fillStyle=c.angry?'#8b0000':'#202020';
+  ctx.fillRect(-7,-16,14,9);
+  // Eyes
+  ctx.fillStyle='#101010';
+  ctx.fillRect(-3,-11,2,2); ctx.fillRect(1,-11,2,2);
+  // Expression
+  if(c.angry){
+    ctx.strokeStyle='#ff4040'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(-3,-6); ctx.lineTo(3,-7); ctx.stroke(); // frown
+    // Anger marks
+    ctx.strokeStyle='#ff4040'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(5,-14); ctx.lineTo(8,-12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(7,-16); ctx.lineTo(9,-13); ctx.stroke();
+  } else {
+    ctx.strokeStyle='#604020'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(0,-7,2.5,0.2,Math.PI-0.2); ctx.stroke();
+  }
+
+  // Speech bubble with request
+  const s=STRAINS[c.strainId];
+  const bx=-28, by=-42, bw=56, bh=22;
+  ctx.fillStyle='rgba(10,14,8,0.92)';
+  roundRect(ctx,bx,by,bw,bh,4); ctx.fill();
+  ctx.strokeStyle=c.angry?'#ff4040':s.col; ctx.lineWidth=1.5;
+  roundRect(ctx,bx,by,bw,bh,4); ctx.stroke();
+  // Bubble tail
+  ctx.fillStyle='rgba(10,14,8,0.92)';
+  ctx.beginPath(); ctx.moveTo(-4,-20); ctx.lineTo(4,-20); ctx.lineTo(0,-16); ctx.fill();
+
+  ctx.fillStyle=s.col; ctx.font='10px VT323'; ctx.textAlign='center';
+  ctx.fillText(c.grams+'g '+s.name.split(' ')[0],0,by+10);
+  ctx.fillStyle='#88aa66'; ctx.font='9px VT323';
+  ctx.fillText(c.patience+'d left',0,by+20);
+
+  ctx.restore();
+}
+
+// ─── PLAYER ───
+function drawPlayer(){
+  ctx.save();
+  ctx.translate(Math.round(P.x+PW/2), Math.round(P.y+PH/2));
+
+  const moving=KEYS['ArrowLeft']||KEYS['ArrowRight']||KEYS['ArrowUp']||KEYS['ArrowDown']||
+               KEYS['KeyA']||KEYS['KeyD']||KEYS['KeyW']||KEYS['KeyS'];
+  const t=P.animT;
+  const legSwing=moving?Math.sin(t*0.28)*6:0;
+  const armSwing=moving?Math.cos(t*0.28)*4:0;
+  const bob=moving?Math.abs(Math.sin(t*0.28))*2:0;
+
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,0.32)';
+  ctx.beginPath(); ctx.ellipse(0,17-bob,11,4,0,0,Math.PI*2); ctx.fill();
+
+  // Legs
+  ctx.fillStyle='#182e0c';
+  ctx.fillRect(-5,8-bob,4,11+legSwing);
+  ctx.fillRect(1,8-bob,4,11-legSwing);
+  // Boots
+  ctx.fillStyle='#3a2010';
+  ctx.fillRect(-6,18-bob+legSwing,6,4);
+  ctx.fillRect(0,18-bob-legSwing,6,4);
+
+  // Body - rasta flag stripes
+  const bodyY=-3-bob;
+  ctx.fillStyle='#cc2222'; ctx.fillRect(-8,bodyY,16,4);
+  ctx.fillStyle='#e8c020'; ctx.fillRect(-8,bodyY+4,16,3);
+  ctx.fillStyle='#208028'; ctx.fillRect(-8,bodyY+7,16,3);
+
+  // Arms
+  ctx.fillStyle='#c07840';
+  ctx.fillRect(-12,-1-bob+armSwing,5,9);
+  ctx.fillRect(7,-1-bob-armSwing,5,9);
+  // Hands
+  ctx.fillStyle='#a86030';
+  ctx.fillRect(-13,7-bob+armSwing,5,4);
+  ctx.fillRect(7,7-bob-armSwing,5,4);
+  // Neck
+  ctx.fillStyle='#b87040';
+  ctx.fillRect(-3,-5-bob,6,4);
+
+  // Head
+  ctx.fillStyle='#b87040';
+  ctx.beginPath(); ctx.ellipse(0,-12-bob,8,8,0,0,Math.PI*2); ctx.fill();
+
+  // Rasta tam (tall striped hat)
+  const hatTop=-30-bob;
+  ctx.fillStyle='#cc2222'; ctx.fillRect(-8,hatTop,16,20);
+  const hatStripes=[['#cc2222',0],['#e8c020',5],['#208028',9],['#cc2222',13],['#e8c020',17]];
+  hatStripes.forEach(([c,dy])=>{
+    ctx.fillStyle=c; ctx.fillRect(-8,hatTop+dy,16,4);
+  });
+  // Brim
+  ctx.fillStyle='#1a1a1a'; ctx.fillRect(-9,-20-bob,18,4);
+  // Pompom
+  ctx.fillStyle='#f0f0f0'; ctx.beginPath(); ctx.arc(0,hatTop-1,4.5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#ddd'; ctx.beginPath(); ctx.arc(-1.5,hatTop-1,3,0,Math.PI*2); ctx.fill();
+
+  // Face
+  if(P.dir===2||P.dir===0){
+    ctx.fillStyle='#101010';
+    ctx.fillRect(-4,-14-bob,2,2); ctx.fillRect(2,-14-bob,2,2);
+    ctx.strokeStyle='#101010'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(0,-10-bob,3,0.2,Math.PI-0.2); ctx.stroke();
+  } else if(P.dir===1){
+    ctx.fillStyle='#101010'; ctx.fillRect(2,-14-bob,2,2);
+  } else {
+    ctx.fillStyle='#101010'; ctx.fillRect(-4,-14-bob,2,2);
+  }
+
+  // Dreads
+  const dreadCols=['#1a1208','#2a1e0a','#221604'];
+  for(let i=0;i<7;i++){
+    const dx=(i-3)*2.8;
+    const sway=Math.sin(i*0.7+t*0.04)*1.5;
+    ctx.strokeStyle=dreadCols[i%dreadCols.length]; ctx.lineWidth=2.5;
+    ctx.beginPath();
+    ctx.moveTo(dx,-20-bob);
+    ctx.bezierCurveTo(dx+sway,-14-bob,dx+sway*1.5,-7-bob,dx+sway*0.8,0-bob);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+// ─── HUD ───
+function drawHUD(){
+  // Room label
+  const inShop = P.x > 42*TS;
+  ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,CW,22);
+  ctx.fillStyle=inShop?'#f7d94a':'#4dff7c';
+  ctx.font='13px VT323'; ctx.textAlign='left';
+  ctx.fillText(inShop?'🏪 SHOP ROOM — Walk to counter, press E to sell':'🌿 GROW ROOM — Walk to a slot, press E to plant/harvest',6,15);
+  ctx.textAlign='right';
+  ctx.fillStyle='#88aa66';
+  ctx.fillText('WASD=move  E/SPACE=interact  ENTER=next day',CW-6,15);
+}
+
+// ════════════════════════════════════════════════════════
+//  PLANT DRAWING HELPERS
+// ════════════════════════════════════════════════════════
+function drawPot3D(ctx,cx,ty,pw,ph){
+  ctx.fillStyle='#5a3818';
+  ctx.beginPath(); ctx.ellipse(cx,ty,pw*0.5,pw*0.18,0,0,Math.PI*2); ctx.fill();
+  const g=ctx.createLinearGradient(cx-pw*0.5,0,cx+pw*0.5,0);
+  g.addColorStop(0,'#3a2010'); g.addColorStop(0.4,'#5a3818'); g.addColorStop(1,'#2a1808');
+  ctx.fillStyle=g;
+  ctx.beginPath();
+  ctx.moveTo(cx-pw*0.5,ty); ctx.lineTo(cx+pw*0.5,ty);
+  ctx.lineTo(cx+pw*0.38,ty+ph); ctx.lineTo(cx-pw*0.38,ty+ph);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#2a1808';
+  ctx.beginPath(); ctx.ellipse(cx,ty+ph,pw*0.38,pw*0.13,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#1e1008';
+  ctx.beginPath(); ctx.ellipse(cx,ty+2,pw*0.44,pw*0.16,0,0,Math.PI*2); ctx.fill();
+}
+
+function drawSeedling3D(ctx,cx,gy,sh,col,wave){
+  const h=sh*0.18;
+  ctx.strokeStyle='#4a7030'; ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(cx,gy); ctx.quadraticCurveTo(cx+wave,gy-h*0.5,cx+wave*0.5,gy-h); ctx.stroke();
+  drawCannabisLeaf(ctx,cx+wave*0.5-5,gy-h*0.7,7,3,-0.5,col,0.9);
+  drawCannabisLeaf(ctx,cx+wave*0.5+5,gy-h*0.7,7,3,0.5,col,0.9);
+}
+
+function drawVeg3D(ctx,cx,gy,sh,col,wA,wB,prog){
+  const h=sh*(0.32+prog*0.1);
+  ctx.strokeStyle='#3a6020'; ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.moveTo(cx,gy); ctx.bezierCurveTo(cx+wA,gy-h*0.4,cx+wB*0.5,gy-h*0.7,cx+wA*0.3,gy-h); ctx.stroke();
+  const branches=3+Math.floor(prog*3);
+  for(let i=0;i<branches;i++){
+    const t=(i+1)/(branches+1);
+    const bx=cx+wA*(1-t)*0.6, by=gy-h*t;
+    const blen=sh*(0.07+prog*0.03)*(1-t*0.3);
+    const side=i%2===0?1:-1;
+    ctx.strokeStyle='#4a7828'; ctx.lineWidth=1.8;
+    ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(bx+side*blen,by-blen*0.4); ctx.stroke();
+    drawCannabisLeaf(ctx,bx+side*blen,by-blen*0.4,sh*(0.09+prog*0.03),side*0.3+0.2,col);
+  }
+  drawCannabisLeaf(ctx,cx+wA*0.3,gy-h,sh*(0.11+prog*0.03),0,col);
+}
+
+function drawFlowering3D(ctx,cx,gy,sh,col,wA,wB,prog){
+  drawVeg3D(ctx,cx,gy+sh*0.04,sh*0.88,col,wA*0.7,wB*0.7,0.8);
+  const budCount=4+Math.floor(prog*8);
+  for(let i=0;i<budCount;i++){
+    const angle=(i/budCount)*Math.PI*2+frame*0.01;
+    const dist=sh*(0.05+Math.sin(i*3.7)*0.03);
+    const bx=cx+Math.cos(angle)*dist+wA*0.2;
+    const by=gy-sh*(0.1+i*0.038);
+    drawCalyx(ctx,bx,by,sh*(0.022+prog*0.013),col);
+  }
+}
+
+function drawRipe3D(ctx,cx,gy,sh,col,wA,wB){
+  // Back fan leaves
+  for(let i=0;i<4;i++){
+    const a=(i/4)*Math.PI*2+wA*0.03;
+    drawCannabisLeaf(ctx,cx+Math.cos(a)*sh*0.16,gy-sh*0.08+Math.sin(a)*sh*0.04,sh*0.13,a+0.5,col,0.55);
+  }
+  // Stem
+  ctx.strokeStyle='#5a9040'; ctx.lineWidth=3.5;
+  ctx.beginPath(); ctx.moveTo(cx+wA*0.3,gy); ctx.lineTo(cx+wA*0.2,gy-sh*0.42*0.3); ctx.stroke();
+  // Main cola
+  const cola=[{dx:0,dy:-0.07},{dx:-0.04,dy:-0.15},{dx:0.04,dy:-0.21},{dx:-0.03,dy:-0.28},{dx:0.03,dy:-0.34},{dx:0,dy:-0.40}];
+  cola.forEach(({dx,dy},i)=>{
+    drawBigCalyx(ctx,cx+dx*sh+wA*0.14,gy+dy*sh,sh*(0.052-i*0.003),col,i);
+  });
+  // Side buds
+  [{dx:-0.2,dy:-0.18},{dx:0.2,dy:-0.18},{dx:-0.17,dy:-0.30},{dx:0.17,dy:-0.30}].forEach(({dx,dy},i)=>{
+    ctx.strokeStyle='#4a8030'; ctx.lineWidth=1.8;
+    ctx.beginPath(); ctx.moveTo(cx+wA*0.18,gy+dy*sh*0.7); ctx.lineTo(cx+dx*sh+wA*0.08,gy+dy*sh); ctx.stroke();
+    drawBigCalyx(ctx,cx+dx*sh+wA*0.08,gy+dy*sh,sh*0.035,col,i+6);
+    drawCannabisLeaf(ctx,cx+dx*sh*1.25+wA*0.08,gy+dy*sh+sh*0.025,sh*0.11,(dx>0?1:-1)*0.55,col,0.65);
+  });
+  // Front leaves
+  for(let i=0;i<3;i++){
+    const a=(i/3)*Math.PI*2+0.5+wB*0.03;
+    drawCannabisLeaf(ctx,cx+Math.cos(a)*sh*0.14+wA*0.09,gy-sh*0.07+Math.sin(a)*sh*0.05,sh*0.12,a-0.3,col,0.78);
+  }
+  // Pulse glow
+  const pulse=0.35+Math.sin(frame*0.1)*0.35;
+  ctx.strokeStyle=`rgba(77,255,124,${pulse*0.8})`; ctx.lineWidth=2;
+  const sw=TS*3;
+  ctx.strokeRect(cx-sw/2+3,gy-sh*0.5,sw-6,sh*0.56);
+}
+
+function drawCalyx(ctx,x,y,r,col){
+  ctx.fillStyle=col;
+  for(let i=0;i<5;i++){
+    const a=(i/5)*Math.PI*2;
+    ctx.beginPath(); ctx.ellipse(x+Math.cos(a)*r*0.6,y+Math.sin(a)*r*0.6,r*0.45,r*0.28,a,0,Math.PI*2); ctx.fill();
+  }
+  ctx.beginPath(); ctx.arc(x,y,r*0.38,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.arc(x-r*0.18,y-r*0.18,r*0.18,0,Math.PI*2); ctx.fill();
+}
+
+function drawBigCalyx(ctx,x,y,r,col,seed){
+  const rn=(s)=>Math.sin(s*127.1)*0.5+0.5;
+  // No shadowBlur - too expensive. Use lighter color for glow effect instead.
+  const count=6+Math.floor(r*8);
+  for(let i=0;i<count;i++){
+    const a=(i/count)*Math.PI*2+rn(seed+i)*0.5;
+    const d=r*(0.28+rn(seed+i+10)*0.52);
+    const cr=r*(0.38+rn(seed+i+20)*0.28);
+    ctx.fillStyle=i%3===0?darken(col,20):i%3===1?col:lighten(col,14);
+    ctx.beginPath(); ctx.ellipse(x+Math.cos(a)*d,y+Math.sin(a)*d*0.72,cr,cr*1.45,a,0,Math.PI*2); ctx.fill();
+  }
+  // Pistils
+  for(let i=0;i<4;i++){
+    const a=rn(seed+i+30)*Math.PI*2;
+    ctx.strokeStyle='#ff8030'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x,y);
+    ctx.quadraticCurveTo(x+Math.cos(a)*r*0.8,y+Math.sin(a)*r*0.5,x+Math.cos(a)*r*1.5,y+Math.sin(a)*r);
+    ctx.stroke();
+  }
+  // Trichomes
+  for(let i=0;i<7;i++){
+    const a=rn(seed+i+40)*Math.PI*2, d=r*(0.5+rn(seed+i+50)*0.7);
+    ctx.fillStyle=`rgba(255,255,255,${0.2+rn(seed+i)*0.35})`;
+    ctx.beginPath(); ctx.arc(x+Math.cos(a)*d,y+Math.sin(a)*d*0.72,r*0.1,0,Math.PI*2); ctx.fill();
+  }
+}
+
+function drawCannabisLeaf(ctx,x,y,size,angle,col,alpha=1){
+  ctx.save(); ctx.translate(x,y); ctx.rotate(angle); ctx.globalAlpha=alpha;
+  const n=7;
+  for(let i=0;i<n;i++){
+    const a=((i-(n-1)/2)/(n-1))*Math.PI*0.85;
+    const len=size*(i===Math.floor(n/2)?1:0.5+Math.abs(i-n/2)*0.09);
+    const w=size*0.17;
+    ctx.fillStyle=col; ctx.save(); ctx.rotate(a);
+    ctx.beginPath();
+    ctx.moveTo(0,0); ctx.bezierCurveTo(-w,-len*0.3,-w,-len*0.7,0,-len);
+    ctx.bezierCurveTo(w,-len*0.7,w,-len*0.3,0,0); ctx.fill();
+    ctx.strokeStyle=darken(col,22); ctx.lineWidth=0.7;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-len*0.9); ctx.stroke();
+    ctx.restore();
+  }
+  ctx.strokeStyle='#4a7030'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,size*0.22); ctx.stroke();
+  ctx.globalAlpha=1; ctx.restore();
+}
+
+function drawMiniBud(ctx,x,y,r,col){
+  ctx.fillStyle=col;
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.arc(x-r*0.3,y-r*0.3,r*0.28,0,Math.PI*2); ctx.fill();
+}
+
+// ════════════════════════════════════════════════════════
+//  UTILS
+// ════════════════════════════════════════════════════════
+function lighten(hex,amt){return shiftCol(hex,amt);}
+function darken(hex,amt){return shiftCol(hex,-amt);}
+function shiftCol(hex,amt){
+  try{
+    const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+    const c=v=>Math.max(0,Math.min(255,v+amt));
+    return`#${c(r).toString(16).padStart(2,'0')}${c(g).toString(16).padStart(2,'0')}${c(b).toString(16).padStart(2,'0')}`;
+  }catch{return hex;}
+}
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath(); ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+}
+
+// ════════════════════════════════════════════════════════
+//  UI
+// ════════════════════════════════════════════════════════
+function updateUI(){
+  document.getElementById('h-money').textContent='$'+GS.money.toLocaleString();
+  document.getElementById('h-day').textContent=GS.day;
+  document.getElementById('h-rep').textContent=GS.rep;
+  const totalG=Object.values(GS.inv).reduce((a,b)=>a+b,0);
+  document.getElementById('h-stash').textContent=totalG+'g';
+  document.getElementById('h-sold').textContent=GS.soldCount;
+
+  // Strains
+  const sl=document.getElementById('sl'); sl.innerHTML='';
+  STRAINS.forEach(s=>{
+    const ok=GS.equip.light>=s.reqL&&GS.equip.climate>=s.reqC&&GS.equip.soil>=s.reqS;
+    const row=document.createElement('div');
+    // Only apply lk to locked (unpurchased) strains, not wrong-equip
+    row.className='srow'+(s.id===GS.selStrain?' sel':'')+((!s.unlocked)?' lk':'');
+    const statusTxt=!s.unlocked?('$'+s.seed):(!ok?'🔒 equip':(s.days+'d'));
+    const statusCol=!s.unlocked?'var(--mt)':(!ok?'var(--or)':'var(--mt)');
+    row.innerHTML=`<div class="sdot" style="background:${s.dot}"></div><div class="snm" style="color:${s.unlocked?(ok?s.col:'#778'):'#334'}">${s.name}</div><div class="sinf" style="color:${statusCol}">${statusTxt}</div>`;
+    if(s.unlocked && ok){
+      row.onclick=()=>{ GS.selStrain=s.id; updateUI(); };
+    } else if(s.unlocked && !ok){
+      row.style.cursor='help';
+      row.onclick=()=>{
+        const needs=[];
+        if(GS.equip.light<s.reqL) needs.push(EQ.light.levels[s.reqL].name);
+        if(GS.equip.climate<s.reqC) needs.push(EQ.climate.levels[s.reqC].name);
+        if(GS.equip.soil<s.reqS) needs.push(EQ.soil.levels[s.reqS].name);
+        addLog(`🔒 ${s.name} needs: ${needs.join(', ')}`,'warn');
+      };
+    } else {
+      row.onclick=()=>buyStrain(s.id);
+    }
+    sl.appendChild(row);
+  });
+
+  // Equipment
+  const eq=document.getElementById('eq'); eq.innerHTML='';
+  ['light','climate','soil','water'].forEach(t=>{
+    const cur=GS.equip[t], lvl=EQ[t].levels[cur], next=EQ[t].levels[cur+1];
+    const row=document.createElement('div'); row.className='erow';
+    row.innerHTML=`<div style="font-size:13px">${EQ[t].icon} <span style="color:${lvl.col}">${lvl.name}</span></div><button class="ebtn" ${!next||GS.money<next.cost?'disabled':''} onclick="buyEquip('${t}')">${next?'⬆$'+next.cost:'MAX'}</button>`;
+    eq.appendChild(row);
+  });
+
+  // Inventory
+  const inv=document.getElementById('inv'); inv.innerHTML='';
+  let val=0;
+  Object.entries(GS.inv).forEach(([id,g])=>{
+    if(!g) return;
+    const s=STRAINS[+id];
+    val+=g*s.sell;
+    const row=document.createElement('div'); row.className='irow';
+    row.innerHTML=`<span style="color:${s.col}">${s.name}</span><span style="color:#668">${g}g</span><span style="color:#ffd700">$${s.sell}/g</span>`;
+    inv.appendChild(row);
+  });
+  document.getElementById('inv-val').textContent='$'+val.toLocaleString();
+
+  // Seed shop - locked strains only
+  const sh=document.getElementById('shop'); sh.innerHTML='';
+  const locked=STRAINS.filter(s=>!s.unlocked);
+  if(!locked.length){
+    sh.innerHTML='<div style="font-size:12px;color:var(--mt);text-align:center;padding:8px">ALL STRAINS UNLOCKED 🌿</div>';
+  } else {
+    locked.forEach(s=>{
+      const canAfford=GS.money>=s.seed;
+      const row=document.createElement('div'); row.className='erow';
+      row.innerHTML=`<div style="font-size:13px;color:${canAfford?s.col:'#445'}"><span class="sdot" style="background:${s.dot};display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:middle"></span>${s.name} <span style="font-size:11px;color:var(--mt)">T${s.t}</span></div><button class="ebtn" style="border-color:var(--y);color:var(--y)" ${!canAfford?'disabled':''} onclick="buyStrain(${s.id})">$${s.seed}</button>`;
+      sh.appendChild(row);
+    });
+  }
+
+  // Grow stats
+  const el=EQ.light.levels[GS.equip.light];
+  const ec=EQ.climate.levels[GS.equip.climate];
+  const es=EQ.soil.levels[GS.equip.soil];
+  const ew=EQ.water.levels[GS.equip.water];
+  const ym=el.ym*ec.ym*es.ym*ew.ym;
+  document.getElementById('gs').innerHTML=
+    `<div>Yield ×<span style="color:var(--g)">${ym.toFixed(2)}</span></div>`+
+    `<div>Slots: <span style="color:var(--y)">${GS.slots.filter(Boolean).length}/12</span></div>`+
+    `<div>Ready: <span style="color:var(--g)">${GS.slots.filter(s=>s&&s.daysLeft===0).length}</span></div>`+
+    `<div>Customers: <span style="color:var(--bl)">${GS.customers.filter(c=>!c.served).length}</span></div>`+
+    `<div>Total grown: <span style="color:var(--gd)">${GS.totalG}g</span></div>`+
+    `<div>Rep: <span style="color:var(--pu)">${GS.rep}/100</span></div>`;
+}
+
+function buyEquip(type){
+  const cur=GS.equip[type], next=EQ[type].levels[cur+1];
+  if(!next){addLog('Already maxed!','warn');return;}
+  if(GS.money<next.cost){addLog(`💸 Need $${next.cost}`,'warn');return;}
+  showModal(`UPGRADE ${EQ[type].name}`,
+    `Upgrade to <span style="color:${next.col}">${next.name}</span>?\n\nYield bonus: +${Math.round((next.ym-1)*100)}%\n\nCost: <span style="color:#ffd700">$${next.cost}</span>`,
+    ()=>{GS.money-=next.cost;GS.equip[type]++;addLog(`⬆ Upgraded to ${next.name}!`,'info');updateUI();});
+}
+
+function buyStrain(id){
+  const s=STRAINS[id];
+  if(s.unlocked) return;
+  if(GS.money<s.seed){addLog(`💸 Need $${s.seed} for seeds`,'warn');return;}
+  showModal(`BUY SEEDS: ${s.name}`,
+    `${s.desc}\n\nTier ${s.t} — ${s.days} days — base $${s.sell}/g\n\nCost: <span style="color:#ffd700">$${s.seed}</span>`,
+    ()=>{GS.money-=s.seed;s.unlocked=true;addLog(`🌿 Unlocked ${s.name}!`,'great');updateUI();});
+}
+
+// ─── LOG ───
+const LL=[];
+function addLog(msg,type=''){
+  LL.unshift({msg,type}); if(LL.length>40) LL.pop();
+  const el=document.getElementById('log');
+  el.innerHTML=LL.map(l=>`<div class="ll ${l.type}">${l.msg}</div>`).join('');
+}
+
+// ─── MODAL ───
+function showModal(title,body,onOk){
+  document.getElementById('mod-t').textContent=title;
+  document.getElementById('mod-b').innerHTML=body.replace(/\n/g,'<br>');
+  const btns=document.getElementById('mod-btns'); btns.innerHTML='';
+  const cancel=document.createElement('button'); cancel.className='gbtn gbtn-g';
+  cancel.style.borderColor='#ff4040'; cancel.style.color='#ff4040'; cancel.textContent='CANCEL';
+  cancel.onclick=closeModal;
+  const ok=document.createElement('button'); ok.className='gbtn gbtn-g';
+  ok.textContent='CONFIRM'; ok.onclick=()=>{closeModal();onOk();};
+  btns.appendChild(cancel); btns.appendChild(ok);
+  document.getElementById('mov').classList.add('open');
+}
+function closeModal(){document.getElementById('mov').classList.remove('open');}
+document.getElementById('mov').addEventListener('click',e=>{
+  if(e.target===document.getElementById('mov')) closeModal();
+});
+document.addEventListener('keydown',e=>{if(e.code==='Escape') closeModal();});
+
+// ════════════════════════════════════════════════════════
+//  GAME LOOP
+// ════════════════════════════════════════════════════════
+function loop(){
+  frame++;
+  if(!document.getElementById('mov').classList.contains('open')){
+    updatePlayer();
+  }
+  updateCustomers();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// ─── INIT ───
+addLog('🌿 Welcome! WASD to move, E to interact with slots & counter.','great');
+addLog('🏪 Walk through the door on the right to reach the shop room.','info');
+addLog('💡 Customers will queue at the counter — walk there and press E!','info');
+// Pre-spawn first customer after a bit
+setTimeout(()=>{spawnCustomer();updateUI();},3000);
+updateUI();
+loop();
+</script>
+</body>
+</html>
