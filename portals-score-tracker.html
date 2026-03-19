@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portals Score Tracker</title>
+<script src="https://portals-labs.github.io/portals-sdk/portals-sdk.js?v=100054756"></script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0c10; --surface: #111520; --surface2: #181e2e;
+    --border: #ffffff14; --border2: #ffffff22;
+    --accent: #00d4ff; --accent-dim: #00d4ff22;
+    --gold: #ffc844; --gold-dim: #ffc84422;
+    --danger: #ff4b6e; --danger-dim: #ff4b6e18;
+    --success: #00e57a; --success-dim: #00e57a18;
+    --text: #e8eaf0; --text-muted: #6b7394; --text-dim: #3a4060;
+    --radius: 10px; --radius-lg: 16px;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Rajdhani', sans-serif; overflow-x: hidden; }
+  body { display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* WAIT */
+  #waitScreen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 28px 20px; }
+  .wait-logo { font-family: 'Orbitron', monospace; font-size: 15px; font-weight: 700; letter-spacing: 4px; color: var(--accent); }
+  .wait-sub { font-size: 11px; letter-spacing: 2px; color: var(--text-muted); margin-top: -10px; }
+  .wait-spinner { width: 34px; height: 34px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .wait-msg { font-size: 12px; color: var(--text-muted); letter-spacing: 1px; text-align: center; line-height: 1.9; }
+  .wait-count { color: var(--accent); font-weight: 700; }
+  .player-pills { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; min-height: 28px; }
+  .pill { padding: 4px 14px; border-radius: 20px; border: 1px solid var(--border2); background: var(--surface); font-size: 12px; font-weight: 700; }
+
+  .timer-setup { width: 100%; max-width: 300px; }
+  .timer-setup label { display: block; font-size: 10px; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; text-align: center; }
+  .timer-options { display: flex; gap: 6px; }
+  .timer-opt { flex: 1; padding: 8px 4px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.15s; }
+  .timer-opt:hover { border-color: var(--border2); color: var(--text); }
+  .timer-opt.selected { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+  .btn-launch { font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 700; letter-spacing: 3px; padding: 12px 28px; border-radius: var(--radius); border: 1px solid var(--accent); background: var(--accent-dim); color: var(--accent); cursor: pointer; transition: all 0.2s; opacity: 0.35; pointer-events: none; }
+  .btn-launch.ready { opacity: 1; pointer-events: auto; }
+  .btn-launch.ready:hover { background: #00d4ff33; }
+
+  /* HEADER */
+  .header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+  .logo { font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700; letter-spacing: 3px; color: var(--accent); }
+  .logo span { color: var(--text-muted); font-weight: 400; }
+  .timer-wrap { text-align: center; }
+  .timer-display { font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: 2px; line-height: 1; }
+  .timer-display.warning { color: var(--gold); }
+  .timer-display.danger { color: var(--danger); animation: pulse 0.8s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .timer-label { font-size: 9px; letter-spacing: 2px; color: var(--text-muted); margin-top: 2px; }
+  .timer-controls { display: flex; gap: 6px; }
+  .btn { font-family: 'Rajdhani', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border2); background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+  .btn.start { border-color: var(--accent); color: var(--accent); }
+  .btn.start:hover { background: var(--accent-dim); }
+  .btn.stop { border-color: var(--danger); color: var(--danger); }
+  .btn.stop:hover { background: var(--danger-dim); }
+  .btn.back { border-color: var(--border); color: var(--text-dim); font-size: 10px; padding: 4px 8px; }
+  .btn.back:hover { color: var(--text-muted); }
+
+  /* GAME */
+  #gameScreen { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+  .players-grid { display: grid; gap: 8px; padding: 10px; flex: 1; }
+  .player-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; position: relative; overflow: hidden; transition: border-color 0.15s; cursor: pointer; user-select: none; }
+  .player-card.selected { background: var(--surface2); }
+  .card-top { display: flex; align-items: center; gap: 8px; }
+  .rank-badge { font-family: 'Orbitron', monospace; font-size: 9px; font-weight: 700; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--surface2); color: var(--text-muted); flex-shrink: 0; }
+  .rank-badge.r1 { background: var(--gold-dim); color: var(--gold); }
+  .rank-badge.r2 { background: #ffffff10; color: #c0c0c0; }
+  .rank-badge.r3 { background: #cd7f3218; color: #cd7f32; }
+  .card-name { font-size: 15px; font-weight: 700; color: var(--text); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-pts { font-family: 'Orbitron', monospace; font-size: 26px; font-weight: 900; line-height: 1; }
+  .card-pts-label { font-size: 8px; letter-spacing: 2px; color: var(--text-muted); }
+  .score-flash { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-family: 'Orbitron', monospace; font-size: 14px; font-weight: 700; color: var(--success); opacity: 0; pointer-events: none; }
+  .score-flash.show { animation: flashUp 0.7s ease forwards; }
+  @keyframes flashUp { 0%{opacity:1;transform:translateY(-50%)} 100%{opacity:0;transform:translateY(-130%)} }
+
+  .action-panel { background: var(--surface); border-top: 1px solid var(--border); padding: 10px; flex-shrink: 0; }
+  .action-label { font-size: 9px; letter-spacing: 2px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; text-align: center; }
+  .task-btn { width: 100%; padding: 12px; border-radius: var(--radius); border: 1px solid var(--success); background: var(--success-dim); color: var(--success); font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700; letter-spacing: 2px; cursor: pointer; transition: all 0.15s; }
+  .task-btn:hover:not(:disabled) { background: #00e57a28; }
+  .task-btn:active:not(:disabled) { transform: scale(0.98); }
+  .task-btn:disabled { opacity: 0.25; cursor: not-allowed; border-color: var(--border); color: var(--text-dim); background: transparent; }
+
+  .log-panel { background: var(--surface); border-top: 1px solid var(--border); padding: 6px 10px; max-height: 62px; overflow-y: auto; flex-shrink: 0; }
+  .log-entry { font-size: 11px; color: var(--text-muted); padding: 2px 0; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center; }
+  .log-entry:last-child { border-bottom: none; }
+  .log-time { color: var(--text-dim); font-family: 'Orbitron', monospace; font-size: 9px; flex-shrink: 0; }
+  .log-pts { color: var(--success); font-weight: 700; flex-shrink: 0; }
+
+  /* WINNER */
+  #winnerOverlay { display: none; position: fixed; inset: 0; background: #0a0c10f0; z-index: 100; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; }
+  .winner-crown { font-size: 46px; animation: crownBounce 1s ease infinite alternate; }
+  @keyframes crownBounce { from{transform:translateY(0)} to{transform:translateY(-8px)} }
+  .winner-title { font-family: 'Orbitron', monospace; font-size: 10px; letter-spacing: 4px; color: var(--text-muted); }
+  .winner-name { font-family: 'Orbitron', monospace; font-size: 24px; font-weight: 900; text-align: center; letter-spacing: 2px; }
+  .winner-pts { font-size: 13px; color: var(--text-muted); }
+  .final-scores { width: 100%; max-width: 300px; display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+  .final-row { display: flex; justify-content: space-between; align-items: center; background: var(--surface); border-radius: var(--radius); padding: 8px 14px; border: 1px solid var(--border); }
+  .final-row .fn { font-size: 14px; font-weight: 700; }
+  .final-row .fp { font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700; }
+  .btn-play-again { font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 700; letter-spacing: 3px; padding: 11px 28px; border-radius: var(--radius); border: 1px solid var(--accent); background: var(--accent-dim); color: var(--accent); cursor: pointer; margin-top: 6px; }
+  .btn-play-again:hover { background: #00d4ff33; }
+</style>
+</head>
+<body>
+
+<div id="waitScreen">
+  <div class="wait-logo">PORTALS</div>
+  <div class="wait-sub">Score Tracker</div>
+  <div class="wait-spinner"></div>
+  <div class="wait-msg">
+    Waiting for players to enter the room...<br>
+    <span class="wait-count" id="waitCount">0 players detected</span>
+  </div>
+  <div class="player-pills" id="playerPills"></div>
+  <div class="timer-setup">
+    <label>Game Duration</label>
+    <div class="timer-options">
+      <div class="timer-opt selected" data-mins="2">2:00</div>
+      <div class="timer-opt" data-mins="3">3:00</div>
+      <div class="timer-opt" data-mins="5">5:00</div>
+    </div>
+  </div>
+  <button class="btn-launch" id="launchBtn" onclick="launchGame()">START GAME</button>
+</div>
+
+<div id="gameScreen">
+  <div class="header">
+    <div class="logo">PORTALS <span>/ SCORE</span></div>
+    <div class="timer-wrap">
+      <div class="timer-display" id="timerDisplay">2:00</div>
+      <div class="timer-label">REMAINING</div>
+    </div>
+    <div class="timer-controls">
+      <button class="btn start" id="startBtn" onclick="startTimer()">START</button>
+      <button class="btn stop" id="stopBtn" style="display:none" onclick="stopTimer()">PAUSE</button>
+      <button class="btn back" onclick="backToWait()">↩</button>
+    </div>
+  </div>
+  <div class="players-grid" id="playersGrid"></div>
+  <div class="log-panel" id="logPanel"></div>
+  <div class="action-panel">
+    <div class="action-label" id="actionLabel">SELECT A PLAYER FIRST</div>
+    <button class="task-btn" id="taskBtn" onclick="awardPoints()" disabled>COMPLETE TASK &nbsp;+15</button>
+  </div>
+</div>
+
+<div id="winnerOverlay">
+  <div class="winner-crown">🏆</div>
+  <div class="winner-title">WINNER</div>
+  <div class="winner-name" id="winnerName"></div>
+  <div class="winner-pts" id="winnerPts"></div>
+  <div class="final-scores" id="finalScores"></div>
+  <button class="btn-play-again" onclick="playAgain()">PLAY AGAIN</button>
+</div>
+
+<script>
+const COLORS = ['#00d4ff','#ff4b6e','#ffc844','#00e57a','#c084fc','#ff9f43','#f97316','#a3e635'];
+
+let players = [];
+let selectedIdx = null;
+let timerDuration = 120;
+let timeLeft = 120;
+let timerInterval = null;
+let running = false;
+let gameOver = false;
+let eventLog = [];
+
+// ── PORTALS SDK LISTENER ──────────────────────────────────────────────────────
+// Room JSON sends: { "$type": "SendMessageToIframes", "iframeMsg": "init:|username|" }
+// SDK delivers it as the string: 'init:"PlayerName"'
+PortalsSdk.setMessageListener((message) => {
+  // Parse: init:"SomeName"
+  const name = message.match(/^init:"(.+?)"$/)?.[1]?.trim();
+  if (name) registerPlayer(name);
+});
+
+function registerPlayer(name) {
+  if (!name || players.find(p => p.name.toLowerCase() === name.toLowerCase())) return;
+  players.push({ name, points: 0, color: COLORS[players.length % COLORS.length] });
+  updateWaitScreen();
+  // If game already running, add player live
+  if (document.getElementById('gameScreen').style.display === 'flex') renderPlayers();
+}
+
+// ── WAIT SCREEN ───────────────────────────────────────────────────────────────
+function updateWaitScreen() {
+  const n = players.length;
+  document.getElementById('waitCount').textContent =
+    n === 0 ? '0 players detected' :
+    n === 1 ? '1 player detected — need at least 2' :
+    `${n} players ready`;
+  document.getElementById('playerPills').innerHTML =
+    players.map(p => `<div class="pill" style="border-color:${p.color}55;color:${p.color}">${p.name}</div>`).join('');
+  const btn = document.getElementById('launchBtn');
+  btn.classList.toggle('ready', n >= 2);
+  btn.textContent = n >= 2 ? `START GAME  (${n})` : 'START GAME';
+}
+
+document.querySelectorAll('.timer-opt').forEach(opt => {
+  opt.addEventListener('click', () => {
+    document.querySelectorAll('.timer-opt').forEach(o => o.classList.remove('selected'));
+    opt.classList.add('selected');
+    timerDuration = parseInt(opt.dataset.mins) * 60;
+    if (!running) { timeLeft = timerDuration; updateTimerDisplay(); }
+  });
+});
+
+// ── LAUNCH ────────────────────────────────────────────────────────────────────
+function launchGame() {
+  if (players.length < 2) return;
+  players.forEach(p => p.points = 0);
+  selectedIdx = null; eventLog = []; gameOver = false; running = false;
+  timeLeft = timerDuration;
+  document.getElementById('waitScreen').style.display = 'none';
+  document.getElementById('gameScreen').style.display = 'flex';
+  document.getElementById('startBtn').style.display = '';
+  document.getElementById('stopBtn').style.display = 'none';
+  updateTimerDisplay(); renderPlayers(); renderLog();
+}
+
+// ── PLAYERS ───────────────────────────────────────────────────────────────────
+function renderPlayers() {
+  const grid = document.getElementById('playersGrid');
+  grid.style.gridTemplateColumns = players.length <= 2 ? '1fr' : 'repeat(2,1fr)';
+  const sorted = players.map((p, i) => ({ ...p, origIdx: i })).sort((a, b) => b.points - a.points);
+  grid.innerHTML = sorted.map((p, rank) => `
+    <div class="player-card ${p.origIdx === selectedIdx ? 'selected' : ''}"
+         style="border-color:${p.origIdx === selectedIdx ? p.color : 'var(--border)'}"
+         onclick="selectPlayer(${p.origIdx})">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:${p.color};border-radius:3px 0 0 3px"></div>
+      <div class="card-top">
+        <div class="rank-badge ${['r1','r2','r3'][rank]||''}">${rank+1}</div>
+        <div class="card-name">${p.name}</div>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:6px">
+        <div class="card-pts" style="color:${p.color}">${p.points}</div>
+        <div class="card-pts-label">PTS</div>
+      </div>
+      <div class="score-flash" id="flash-${p.origIdx}">+15</div>
+    </div>`).join('');
+  updateActionPanel();
+}
+
+function selectPlayer(idx) {
+  if (gameOver) return;
+  selectedIdx = idx === selectedIdx ? null : idx;
+  renderPlayers();
+}
+
+function updateActionPanel() {
+  const lbl = document.getElementById('actionLabel');
+  const btn = document.getElementById('taskBtn');
+  if (selectedIdx !== null) {
+    const p = players[selectedIdx];
+    lbl.textContent = `AWARDING TO: ${p.name.toUpperCase()}`;
+    lbl.style.color = p.color;
+    btn.disabled = false;
+    btn.style.cssText = `border-color:${p.color};color:${p.color};background:${p.color}18`;
+  } else {
+    lbl.textContent = 'SELECT A PLAYER FIRST';
+    lbl.style.color = '';
+    btn.disabled = true;
+    btn.style.cssText = '';
+  }
+}
+
+// ── POINTS ────────────────────────────────────────────────────────────────────
+function awardPoints() {
+  if (selectedIdx === null || gameOver) return;
+  players[selectedIdx].points += 15;
+  const ts = formatTime(timerDuration - timeLeft);
+  eventLog.unshift({ player: players[selectedIdx].name, color: players[selectedIdx].color, pts: 15, time: ts });
+  if (eventLog.length > 40) eventLog.pop();
+  renderPlayers(); renderLog();
+  const f = document.getElementById('flash-' + selectedIdx);
+  if (f) { f.classList.remove('show'); void f.offsetWidth; f.classList.add('show'); }
+}
+
+// ── TIMER ─────────────────────────────────────────────────────────────────────
+function startTimer() {
+  if (running || gameOver) return;
+  running = true;
+  document.getElementById('startBtn').style.display = 'none';
+  document.getElementById('stopBtn').style.display = '';
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimerDisplay();
+    if (timeLeft <= 0) { timeLeft = 0; updateTimerDisplay(); endGame(); }
+  }, 1000);
+}
+function stopTimer() {
+  running = false; clearInterval(timerInterval);
+  document.getElementById('startBtn').style.display = '';
+  document.getElementById('stopBtn').style.display = 'none';
+}
+function updateTimerDisplay() {
+  const el = document.getElementById('timerDisplay');
+  el.textContent = `${Math.floor(timeLeft/60)}:${String(timeLeft%60).padStart(2,'0')}`;
+  el.className = 'timer-display' + (timeLeft<=10?' danger':timeLeft<=30?' warning':'');
+}
+function formatTime(s) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
+
+// ── END GAME ──────────────────────────────────────────────────────────────────
+function endGame() {
+  running = false; clearInterval(timerInterval); gameOver = true;
+  document.getElementById('startBtn').style.display = 'none';
+  document.getElementById('stopBtn').style.display = 'none';
+  const sorted = [...players].sort((a,b) => b.points - a.points);
+  const w = sorted[0];
+  document.getElementById('winnerName').textContent = w.name.toUpperCase();
+  document.getElementById('winnerName').style.color = w.color;
+  document.getElementById('winnerPts').textContent = w.points + ' POINTS';
+  document.getElementById('finalScores').innerHTML = sorted.map((p,i) =>
+    `<div class="final-row">
+      <span class="fn" style="color:${p.color}">${i===0?'🏆 ':''}${p.name}</span>
+      <span class="fp" style="color:${p.color}">${p.points} pts</span>
+    </div>`).join('');
+  document.getElementById('winnerOverlay').style.display = 'flex';
+}
+
+// ── LOG ───────────────────────────────────────────────────────────────────────
+function renderLog() {
+  document.getElementById('logPanel').innerHTML = eventLog.map(e =>
+    `<div class="log-entry">
+      <span class="log-time">${e.time}</span>
+      <span style="font-weight:700;color:${e.color}">${e.player}</span>
+      <span style="color:var(--text-muted);flex:1"> completed a task</span>
+      <span class="log-pts">+${e.pts}</span>
+    </div>`).join('');
+}
+
+// ── MISC ──────────────────────────────────────────────────────────────────────
+function backToWait() {
+  stopTimer();
+  players.forEach(p => p.points = 0);
+  selectedIdx = null; eventLog = []; gameOver = false; running = false;
+  document.getElementById('gameScreen').style.display = 'none';
+  document.getElementById('winnerOverlay').style.display = 'none';
+  document.getElementById('waitScreen').style.display = 'flex';
+  timeLeft = timerDuration; updateTimerDisplay(); updateWaitScreen();
+}
+function playAgain() {
+  document.getElementById('winnerOverlay').style.display = 'none';
+  players.forEach(p => p.points = 0);
+  timeLeft = timerDuration; selectedIdx = null; eventLog = []; gameOver = false; running = false;
+  document.getElementById('startBtn').style.display = '';
+  document.getElementById('stopBtn').style.display = 'none';
+  updateTimerDisplay(); renderPlayers(); renderLog();
+}
+
+updateTimerDisplay();
+updateWaitScreen();
+</script>
+</body>
+</html>
